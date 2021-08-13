@@ -20,6 +20,7 @@ object Less1 extends App {
   }
 
   //not good, arguments access
+  //def fibonacci3(n: Int): Either[String, Int] = {fibonacci2(n)} //private fibonacci2
   @tailrec
   def fibonacci2(n: Int, f0: Int = 0, f1: Int = 1, number: Int = 2): Either[String, Int] = {
     (n, number) match {
@@ -29,6 +30,8 @@ object Less1 extends App {
       case (x, y) => fibonacci2(x, f1, f0+f1, y+1)
     }
   }
+
+
 
 //  //test
 //  val l1 = for {i <- (0 to 19).toList} yield fibonacci1(i).getOrElse(-1)
@@ -49,20 +52,26 @@ object Less1 extends App {
 
   def unfilteredPrimeNumberList(upperBorder: Int): List[Int] = {
     val squareBorder = Math.sqrt(upperBorder).toInt
-    val l1 = for {
+    val unfilteredList = for {
       x <- (1 to squareBorder).toList
       y <- (1 to squareBorder).toList
     } yield List(4*x*x + y*y, 3*x*x + y*y, 3*x*x - y*y)
-    l1.flatten
+    unfilteredList.flatten
       .distinct
-      .filter(x => x > 0 && x <= upperBorder && (x%4 == 1 || x%6 == 1 || x%12 == 11))
+      .filter(x => x > 0 && x <= upperBorder && (x%4 == 1 || x%6 == 1 || x%12 == 11)) //move to filterPrimeNumberList?
       .sortWith((x, y) => x < y)
   }
 
   def filterPrimeNumberList(list: List[Int]): List[Int] = {
-    list.filter(x => !list.exists(y => x / (y * y) >= 1 && x % (y * y) == 0))
+    val res = list.filter(x => !list.exists(y => x / (y * y) >= 1 && x % (y * y) == 0))
       .filter(x => !list.exists(y => list.exists(z => x == y * z)))
       .filter(x => x%3 != 0 && x%5 != 0)
+    val s1 = for { //  = list.flatMap(x => list.map(y => y*x))
+      x <- list
+      y <- list
+    } yield x*y
+    list.filterNot(x => s1.contains(x))
+    res
   }
 
   //test

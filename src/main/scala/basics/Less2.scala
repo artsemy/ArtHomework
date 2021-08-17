@@ -33,36 +33,6 @@ object Less2 {
 
   import CellContainer._
 
-//  final case class MyWriter() {
-//    def writeMatrix(matrix: Map[String, CellContainer]): Unit = {
-//      val fileWriter = new FileWriter(new File("D:\\output.txt"))
-//      val s = buildText(matrix)
-//      fileWriter.write(s)
-//      fileWriter.close()
-//    }
-//
-//
-//    def buildText(matrix: Map[String, CellContainer]): String = {
-//      val m = matrix.map(x => (x._1.tail+x._1.head, x._2)) //sorting problem
-//      val sortedSeq = m.toSeq.sortBy(_._1)
-//      val iter = sortedSeq.iterator
-//      buildLines(iter, iter.next()._2.getValue)
-//    }
-//
-//    @tailrec
-//    def buildLines(iterator: Iterator[(String, CellContainer)], text: String): String = {
-//      if (iterator.hasNext) {
-//        val elem = iterator.next()
-//        if (elem._1.charAt(1) != 'A') buildLines(iterator, text + "\t" + elem._2.getValue)
-//        else buildLines(iterator, text + System.getProperty("line.separator") + elem._2.getValue)
-//      }
-//      else text
-//    }
-//
-//  }
-
-
-
   type ErrorMessage = String
   final case class RawSpreadsheet(matrix: Array[Array[String]])
   final case class ProcessedSpreadsheet(matrix: Array[Array[CellContainer]])

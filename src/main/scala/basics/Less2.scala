@@ -203,25 +203,24 @@ object Less2 {
   class LocalSpreadsheetWriter() extends SpreadsheetWriter {
     override def write(writePath: String,
                        processedSpreadsheet: ProcessedSpreadsheet): Either[ErrorMessage, ProcessedSpreadsheet] = {
-      val MatrixIterator = stringMatrixIterator(processedSpreadsheet)
-      val fileWriter = new FileWriter(new File(writePath)) // try catch
-      val resultText = buildText(MatrixIterator, "")
+
+      val matrixToWrite = processedSpreadsheet.matrix.map(x => x.map(y => y.value))
+      val fileWriter = new FileWriter(new File(writePath))
+      val resultText = buildText(matrixToWrite)
+
       fileWriter.write(resultText)
       fileWriter.close()
       Right(processedSpreadsheet)
     }
 
-    def stringMatrixIterator(processedSpreadsheet: ProcessedSpreadsheet): Iterator[List[String]] = {
-      val resultMatrix = processedSpreadsheet.matrix.map(x => x.map(y => y.value))
-      resultMatrix.iterator
+    def buildText(matrix: List[List[String]]): String = {
+      matrix
+        .map(line => buildLine(line))
+        .reduceLeft((x, y) => x + "\n" + y)
     }
 
-    def buildText(iterator: Iterator[List[String]], initStr: String): String = {
-      if (iterator.hasNext) {
-        val line = initStr + iterator.next().reduceLeft((x, y) => x + "\t" + y) +
-          System.getProperty("line.separator") //last empty string
-        buildText(iterator, line)
-      } else initStr
+    def buildLine(line: List[String]): String = {
+      line.reduceLeft((x, y) => x + "\t" + y)
     }
   }
 

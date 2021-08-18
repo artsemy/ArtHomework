@@ -1,7 +1,8 @@
 package basics
 
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import java.io.{File, FileWriter}
+import java.nio.file.{Files, Path, Paths}
 import scala.util.{Failure, Success, Try}
 
 object Less2 {
@@ -37,22 +38,26 @@ object Less2 {
   final case class RawSpreadsheet(matrix: List[List[String]])
   final case class ProcessedSpreadsheet(matrix: List[List[CellContainer]])
 
-  def validateReadPath(readPath: String): Either[ErrorMessage, String] = {
-    Try(new File(readPath)) match {
+  def validateReadPath(readPath: String): Either[ErrorMessage, BufferedSource] = {
+    Try(Source.fromFile(readPath)) match {
       case Failure(exception) => Left(exception.getMessage)
-      case Success(value) => if (value.isFile) Right(readPath) else Left("inputPathError")
+      case Success(bufferedSource) => Right(bufferedSource)
     }
   }
 
   def validateWritePath(writePath: String): Either[ErrorMessage, String] = {
-    Right(writePath) //how to validate path of not existing file
+    val fileNameStartIndex = writePath.lastIndexOf("/") + 1
+    val pathWithoutFileName = writePath.substring(0, fileNameStartIndex)
+
+    if (Files.exists(Paths.get(pathWithoutFileName))) Right(writePath)
+    else Left("path not exists")
   }
 
   trait SpreadsheetParser {
     def parse(): Either[ErrorMessage, RawSpreadsheet]
   }
 
-  class LocalSpreadsheetParser(path: String) extends SpreadsheetParser {
+  class LocalSpreadsheetParser(bufferedSource: BufferedSource) extends SpreadsheetParser {
 
     val WrongSizeFormatMessage = "wrong size format"
     val WrongElementNumberMessage = "wrong element number"
@@ -62,6 +67,7 @@ object Less2 {
       val lines = readLines()
       val initMatrix = lines.map(x => x.split("\t").toList)
       val parsedMatrix = validateMatrixWithSize(initMatrix)
+
       parsedMatrix match {
         case Left(value) => Left(value)
         case Right(matrix) => Right(RawSpreadsheet(matrix))
@@ -69,9 +75,8 @@ object Less2 {
     }
 
     def readLines(): List[String] = {
-      val source = Source.fromFile(path)
-      val lines = source.getLines().toList
-      source.close()
+      val lines = bufferedSource.getLines().toList
+      bufferedSource.close()
       lines
     }
 
@@ -206,10 +211,10 @@ object Less2 {
     val writePath = args(1)
 
     val result = for {
-      validReadPath <- validateReadPath(readPath)
+      validReadPathSource <- validateReadPath(readPath)
       validWritePath <- validateWritePath(writePath)
 
-      spreadsheetParser = new LocalSpreadsheetParser(validReadPath)
+      spreadsheetParser = new LocalSpreadsheetParser(validReadPathSource)
       parsedMatrix <- spreadsheetParser.parse()
 
       spreadsheetProcessor = new SimpleSpreadsheetProcessor

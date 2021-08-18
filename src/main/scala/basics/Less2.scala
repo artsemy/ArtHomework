@@ -34,8 +34,8 @@ object Less2 {
   import CellContainer._
 
   type ErrorMessage = String
-  final case class RawSpreadsheet(matrix: Array[Array[String]])
-  final case class ProcessedSpreadsheet(matrix: Array[Array[CellContainer]])
+  final case class RawSpreadsheet(matrix: List[List[String]])
+  final case class ProcessedSpreadsheet(matrix: List[List[CellContainer]])
 
   def validateReadPath(readPath: String): Either[ErrorMessage, String] = {
     Try(new File(readPath)) match {
@@ -60,7 +60,7 @@ object Less2 {
 
     override def parse(): Either[ErrorMessage, RawSpreadsheet] = {
       val lines = readLines()
-      val initMatrix = lines.map(x => x.split("\t"))
+      val initMatrix = lines.map(x => x.split("\t").toList)
       val parsedMatrix = validateMatrixWithSize(initMatrix)
       parsedMatrix match {
         case Left(value) => Left(value)
@@ -68,25 +68,25 @@ object Less2 {
       }
     }
 
-    def readLines(): Array[String] = {
+    def readLines(): List[String] = {
       val source = Source.fromFile(path)
-      val lines = source.getLines().toArray
+      val lines = source.getLines().toList
       source.close()
       lines
     }
 
-    def validateMatrixWithSize(matrixWithSize: Array[Array[String]]): Either[ErrorMessage, Array[Array[String]]] = {
+    def validateMatrixWithSize(matrixWithSize: List[List[String]]): Either[ErrorMessage, List[List[String]]] = {
       val iterator = matrixWithSize.iterator
       if (iterator.hasNext) {
         val size = validateInputSize(iterator.next())
         size match {
-          case Right(value) => validateMatrix(iterator.toArray, value)
+          case Right(value) => validateMatrix(iterator.toList, value)
           case Left(value) => Left(value)
         }
       } else Left(EmptyInputMessage)
     }
 
-    def validateInputSize(strings: Array[String]): Either[ErrorMessage, (Int, Int)] = {
+    def validateInputSize(strings: List[String]): Either[ErrorMessage, (Int, Int)] = {
       if (strings.length == 2) {
         Try(strings.map(x => x.toInt)) match {
           case Success(value) => Right((value.head, value.tail.head)) // 1st and 2nd
@@ -96,7 +96,7 @@ object Less2 {
         Left(WrongSizeFormatMessage)
     }
 
-    def validateMatrix(array: Array[Array[String]], size: (Int, Int)): Either[ErrorMessage, Array[Array[String]]] = {
+    def validateMatrix(array: List[List[String]], size: (Int, Int)): Either[ErrorMessage, List[List[String]]] = {
       val (lineNumber, columnNumber) = size
       if (array.length == lineNumber) {
         val lineSizes = array.map(x => x.length)
@@ -123,11 +123,11 @@ object Less2 {
       ProcessedSpreadsheet(processedMatrix)
     }
 
-    def processMatrix(array: Array[Array[CellContainer]]): Array[Array[CellContainer]] = {
+    def processMatrix(array: List[List[CellContainer]]): List[List[CellContainer]] = {
       array.map(x => x.map(y => processElement(y, array)))
     }
 
-    def processElement(cell: CellContainer, array: Array[Array[CellContainer]]): CellContainer = {
+    def processElement(cell: CellContainer, array: List[List[CellContainer]]): CellContainer = {
       cell match {
         case TextLineCell(value) => TextLineCell(value.tail)
         case ExpressionCell(value) => processExpressionCell(value.tail, array)
@@ -136,7 +136,7 @@ object Less2 {
       }
     }
 
-    def processExpressionCell(str: String, array: Array[Array[CellContainer]]): CellContainer = {
+    def processExpressionCell(str: String, array: List[List[CellContainer]]): CellContainer = {
       val units = str.split(SignDivider).map(x => CellContainer(x))
       val signsIterator = str.split(NoSignDivider).iterator
       if (units.isEmpty) WrongFormatCell(WrongFormatMessage)
@@ -147,7 +147,7 @@ object Less2 {
       }
     }
 
-    def processLinkCell(str: String, array: Array[Array[CellContainer]]): CellContainer = {
+    def processLinkCell(str: String, array: List[List[CellContainer]]): CellContainer = {
       val indexColumn = str.head.toInt - IntValueOfA //try match
       val indexLine = str.tail.toInt - IndexCountDifference //try match
       val lineArr = array(indexLine)
@@ -155,7 +155,7 @@ object Less2 {
       processElement(elem, array)
     }
 
-    def processPairCell(right: CellContainer, left: CellContainer, mathOperation: String, array: Array[Array[CellContainer]]): CellContainer = {
+    def processPairCell(right: CellContainer, left: CellContainer, mathOperation: String, array: List[List[CellContainer]]): CellContainer = {
       val operand1 = processElement(right, array)
       val operand2 = processElement(left, array)
       (operand1, operand2) match {
@@ -188,12 +188,12 @@ object Less2 {
       Right(processedSpreadsheet)
     }
 
-    def stringMatrixIterator(processedSpreadsheet: ProcessedSpreadsheet): Iterator[Array[String]] = {
+    def stringMatrixIterator(processedSpreadsheet: ProcessedSpreadsheet): Iterator[List[String]] = {
       val resultMatrix = processedSpreadsheet.matrix.map(x => x.map(y => y.value))
       resultMatrix.iterator
     }
 
-    def buildText(iterator: Iterator[Array[String]], initStr: String): String = {
+    def buildText(iterator: Iterator[List[String]], initStr: String): String = {
       if (iterator.hasNext) {
         val line = initStr + iterator.next().reduceLeft((x, y) => x + "\t" + y) + System.getProperty("line.separator") //last empty string
         buildText(iterator, line)

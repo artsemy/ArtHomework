@@ -2,7 +2,7 @@ package basics
 
 import scala.io.{BufferedSource, Source}
 import java.io.{File, FileWriter}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Paths}
 import scala.util.{Failure, Success, Try}
 
 object Less2 {
@@ -65,10 +65,10 @@ object Less2 {
 
     override def parse(): Either[ErrorMessage, RawSpreadsheet] = {
       val lines = readLines()
-      val initMatrix = lines.map(x => x.split("\t").toList)
-      val parsedMatrix = validateMatrixWithSize(initMatrix)
+      val initRows = lines.map(x => x.split("\t").toList)
+      val validatedMatrix = validateInputRows(initRows)
 
-      parsedMatrix match {
+      validatedMatrix match {
         case Left(value) => Left(value)
         case Right(matrix) => Right(RawSpreadsheet(matrix))
       }
@@ -80,32 +80,41 @@ object Less2 {
       lines
     }
 
-    def validateMatrixWithSize(matrixWithSize: List[List[String]]): Either[ErrorMessage, List[List[String]]] = {
-      val iterator = matrixWithSize.iterator
-      if (iterator.hasNext) {
-        val size = validateInputSize(iterator.next())
-        size match {
-          case Right(value) => validateMatrix(iterator.toList, value)
-          case Left(value) => Left(value)
-        }
-      } else Left(EmptyInputMessage)
+    def validateInputRows(initRows: List[List[String]]): Either[ErrorMessage, List[List[String]]] = {
+      initRows match {
+        case sizeLine :: matrix => validateSizeAndMatrix(sizeLine, matrix)
+        case _ => Left(EmptyInputMessage)
+      }
     }
 
-    def validateInputSize(strings: List[String]): Either[ErrorMessage, (Int, Int)] = {
-      if (strings.length == 2) {
-        Try(strings.map(x => x.toInt)) match {
-          case Success(value) => Right((value.head, value.tail.head)) // 1st and 2nd
-          case Failure(_) => Left(WrongSizeFormatMessage)
-        }
-      } else
-        Left(WrongSizeFormatMessage)
+    def validateSizeAndMatrix(size: List[String],
+                              matrix: List[List[String]]): Either[ErrorMessage, List[List[String]]] = {
+      for {
+        validatedSize <- validateSize(size)
+        validatedMatrix <- validateMatrix(matrix, validatedSize)
+      } yield validatedMatrix
     }
 
-    def validateMatrix(array: List[List[String]], size: (Int, Int)): Either[ErrorMessage, List[List[String]]] = {
-      val (lineNumber, columnNumber) = size
-      if (array.length == lineNumber) {
-        val lineSizes = array.map(x => x.length)
-        if (lineSizes.forall(x => x == columnNumber)) Right(array)
+    def validateSize(sizeRow: List[String]): Either[ErrorMessage, (Int, Int)] = {
+      sizeRow match {
+        case firstElem :: lastElem :: Nil => validateTypeInt(firstElem, lastElem)
+        case _ => Left(WrongSizeFormatMessage)
+      }
+    }
+
+    def validateTypeInt(s1: String, s2: String): Either[ErrorMessage, (Int, Int)] = {
+      (s1.toIntOption, s2.toIntOption) match {
+        case (Some(x1), Some(x2)) => Right((x1, x2))
+        case _ => Left(WrongSizeFormatMessage)
+      }
+    }
+
+    def validateMatrix(list: List[List[String]], size: (Int, Int)): Either[ErrorMessage, List[List[String]]] = {
+      val (rowNumber, columnNumber) = size
+
+      if (list.length == rowNumber) {
+        val rowSizes = list.map(x => x.length)
+        if (rowSizes.forall(_ == columnNumber)) Right(list)
         else Left(WrongElementNumberMessage)
       } else Left(WrongElementNumberMessage)
     }

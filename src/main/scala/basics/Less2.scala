@@ -180,7 +180,7 @@ object Less2 {
       val operand2 = processElement(left, list)
 
       (operand1, operand2) match {
-        case (NonNegativeIntegerCell(i1), NonNegativeIntegerCell(i2)) =>countMathExpression(i1, i2, mathOperation)
+        case (NonNegativeIntegerCell(i1), NonNegativeIntegerCell(i2)) => countMathExpression(i1, i2, mathOperation)
         case _ => WrongFormatCell(WrongFormatMessage)
       }
     }

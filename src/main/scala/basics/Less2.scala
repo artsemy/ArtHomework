@@ -45,12 +45,14 @@ object Less2 {
     }
   }
 
+  val PathNotExistsMessage = "path not exists"
+
   def validateWritePath(writePath: String): Either[ErrorMessage, String] = {
     val fileNameStartIndex = writePath.lastIndexOf("/") + 1
     val pathWithoutFileName = writePath.substring(0, fileNameStartIndex)
 
     if (Files.exists(Paths.get(pathWithoutFileName))) Right(writePath)
-    else Left("path not exists")
+    else Left(PathNotExistsMessage)
   }
 
   trait SpreadsheetParser {
@@ -134,57 +136,64 @@ object Less2 {
     override def process(spreadsheet: RawSpreadsheet): ProcessedSpreadsheet = {
       val startMatrix = spreadsheet.matrix.map(x => x.map(y => CellContainer(y)))
       val processedMatrix = processMatrix(startMatrix)
+
       ProcessedSpreadsheet(processedMatrix)
     }
 
-    def processMatrix(array: List[List[CellContainer]]): List[List[CellContainer]] = {
-      array.map(x => x.map(y => processElement(y, array)))
+    def processMatrix(list: List[List[CellContainer]]): List[List[CellContainer]] = {
+      list.map(x => x.map(y => processElement(y, list)))
     }
 
-    def processElement(cell: CellContainer, array: List[List[CellContainer]]): CellContainer = {
+    def processElement(cell: CellContainer, list: List[List[CellContainer]]): CellContainer = {
       cell match {
         case TextLineCell(value) => TextLineCell(value.tail)
-        case ExpressionCell(value) => processExpressionCell(value.tail, array)
-        case LinkCell(value) => processLinkCell(value, array)
+        case ExpressionCell(value) => processExpressionCell(value.tail, list)
+        case LinkCell(value) => processLinkCell(value, list)
         case x => x
       }
     }
 
-    def processExpressionCell(str: String, array: List[List[CellContainer]]): CellContainer = {
-      val units = str.split(SignDivider).map(x => CellContainer(x))
-      val signsIterator = str.split(NoSignDivider).iterator
-      if (units.isEmpty) WrongFormatCell(WrongFormatMessage)
-      else if (units.tail.isEmpty) processLinkCell(str, array) //units.length == 1
-      else {
-        signsIterator.next()
-        units.reduceLeft((x, y) => processPairCell(x, y, signsIterator.next(), array))
+    def processExpressionCell(expression: String, list: List[List[CellContainer]]): CellContainer = {
+      val units = expression.split(SignDivider).map(x => CellContainer(x)).toList
+      val signsIterator = expression.split(NoSignDivider).iterator
+
+      units match {
+        case Nil => WrongFormatCell(WrongFormatMessage)
+        case oneElem :: Nil => processLinkCell(expression, list)
+        case severalElements => signsIterator.next()
+          units.reduceLeft((x, y) => processPairCell(x, y, signsIterator.next(), list)) //useful iterator
       }
     }
 
-    def processLinkCell(str: String, array: List[List[CellContainer]]): CellContainer = {
-      val indexColumn = str.head.toInt - IntValueOfA //try match
-      val indexLine = str.tail.toInt - IndexCountDifference //try match
-      val lineArr = array(indexLine)
-      val elem = lineArr(indexColumn)
-      processElement(elem, array)
+    def processLinkCell(str: String, list: List[List[CellContainer]]): CellContainer = {
+      val indexColumn = str.head.toInt - IntValueOfA //try catch
+      val indexRow = str.tail.toInt - IndexCountDifference //try catch
+      val rowList = list(indexRow)
+      val elem = rowList(indexColumn)
+
+      processElement(elem, list)
     }
 
-    def processPairCell(right: CellContainer, left: CellContainer, mathOperation: String, array: List[List[CellContainer]]): CellContainer = {
-      val operand1 = processElement(right, array)
-      val operand2 = processElement(left, array)
+    def processPairCell(right: CellContainer, left: CellContainer, mathOperation: String,
+                        list: List[List[CellContainer]]): CellContainer = {
+      val operand1 = processElement(right, list)
+      val operand2 = processElement(left, list)
+
       (operand1, operand2) match {
-        case (NonNegativeIntegerCell(i1), NonNegativeIntegerCell(i2)) =>
-          mathOperation match {
-            case "+" => NonNegativeIntegerCell((i1.toInt + i2.toInt).toString)
-            case "-" => NonNegativeIntegerCell((i1.toInt - i2.toInt).toString)
-            case "/" if i2.toInt != 0 => NonNegativeIntegerCell((i1.toInt / i2.toInt).toString)
-            case "*" => NonNegativeIntegerCell((i1.toInt * i2.toInt).toString)
-            case _ => WrongFormatCell(WrongFormatMessage)
-          }
+        case (NonNegativeIntegerCell(i1), NonNegativeIntegerCell(i2)) =>countMathExpression(i1, i2, mathOperation)
         case _ => WrongFormatCell(WrongFormatMessage)
       }
     }
 
+    def countMathExpression(left: String, right: String, mathOperation: String): CellContainer = {
+      mathOperation match {
+        case "+" => NonNegativeIntegerCell((left.toInt + right.toInt).toString)
+        case "-" => NonNegativeIntegerCell((left.toInt - right.toInt).toString)
+        case "/" if right.toInt != 0 => NonNegativeIntegerCell((left.toInt / right.toInt).toString)
+        case "*" => NonNegativeIntegerCell((left.toInt * right.toInt).toString)
+        case _ => WrongFormatCell(WrongFormatMessage)
+      }
+    }
   }
 
   trait SpreadsheetWriter {
@@ -209,7 +218,8 @@ object Less2 {
 
     def buildText(iterator: Iterator[List[String]], initStr: String): String = {
       if (iterator.hasNext) {
-        val line = initStr + iterator.next().reduceLeft((x, y) => x + "\t" + y) + System.getProperty("line.separator") //last empty string
+        val line = initStr + iterator.next().reduceLeft((x, y) => x + "\t" + y) +
+          System.getProperty("line.separator") //last empty string
         buildText(iterator, line)
       } else initStr
     }

@@ -32,32 +32,19 @@ object Less3 {
     //   - For other `n`, for each `set` element `elem`, generate all subsets of size `n - 1` from the set
     //     that don't include `elem`, and add `elem` to them.
     def allSubsetsOfSizeN[A](set: Set[A], n: Int): Set[Set[A]] = {
-      n match {
-        case 1 => Set(set)
-        case _ => f1(set, n)
-      }
+      g2(Set.empty, set, n)
+    }
 
-      def f1(set: Set[A], n: Int): Set[Set[A]] = {
-        if (set.size > n) g1(set, n-1)
-        else Set(set)
-      }
-
-      def g1(set: Set[A], n: Int): Set[Set[A]] = {
-        val h1 = set.head
-        val t1 = set.tail
-        val set2 = if (t1.size >= n) {
-          println("h=" + h1 + " t=" + t1.toString() + " n=" + n)
-          g1(t1, n)
-        }
-        if (n > 1 && t1.size >= n) {
-          println()
-          g1(t1, n-1)
-        }
-        Set(set)
-      }
-
-      println(n)
-      Set(set)
+    def g2[A](leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
+      val s1 = if (rightSet.size > n && n > 1) {
+        g2(Set(rightSet.head), rightSet.tail, n-1)
+      } else Set.empty
+      val s2 = if (rightSet.size > n && n > 1) {
+        g2(Set(rightSet.tail.head), rightSet.tail.tail, n-1)
+      } else Set.empty
+      val s3 = if (n == 1) rightSet.map(x => leftSet + x)
+      else (s1 ++ s2).map(x => leftSet ++ x)
+      s3
     }
   }
 

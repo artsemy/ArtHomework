@@ -36,21 +36,29 @@ object Less3 {
     }
 
     def g2[A](leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
-      val s1 = if (rightSet.size > n && n > 1) {
+      //(_)(a, b, c, ...)^n => (a)(b, c, ...)^n-1
+      val s1 = if (rightSet.size >= n && n > 1)
         g2(Set(rightSet.head), rightSet.tail, n-1)
-      } else Set.empty
-      val s2 = if (rightSet.size > n && n > 1) {
+      else Set.empty
+      //(_)(a, b, c, ...)^n => (b)(c, ...)^n-1
+      val s2 = if (rightSet.size > n && n > 1)
         g2(Set(rightSet.tail.head), rightSet.tail.tail, n-1)
-      } else Set.empty
-      val s3 = if (n == 1) rightSet.map(x => leftSet + x)
-      else (s1 ++ s2).map(x => leftSet ++ x)
-      s3
+      else Set.empty
+      //
+      val s3 = if (rightSet.size - n > 1 && n > 1)
+        g2(Set(rightSet.tail.tail.head), rightSet.tail.tail.tail, n-1)
+      else Set.empty
+
+      val s4 = if (n == 1) rightSet.map(x => leftSet + x)
+      else (s1 ++ s2 ++ s3).map(x => leftSet ++ x)
+      s4
     }
   }
 
   def main(args: Array[String]): Unit = {
 //    println(part1.totalVegetableWeights)
-    println(part2.allSubsetsOfSizeN(Set(1,2,3,4,0), 3))
+    val resSet = part2.allSubsetsOfSizeN((1 to 6).toSet, 2)
+    println(resSet.size + " - " + resSet)
   }
 
 }

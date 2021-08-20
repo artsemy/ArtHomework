@@ -56,7 +56,7 @@ object Less3 {
 
   def main(args: Array[String]): Unit = {
 //    test1()
-    test2(limit = 5, len = 3)
+    test2(limit = 10, len = 3)
   }
 
   def test1() = {

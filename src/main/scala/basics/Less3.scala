@@ -36,27 +36,30 @@ object Less3 {
     }
 
     def g2[A](leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
-      if (rightSet.size > n)
-        g2(leftSet + rightSet.head, rightSet.tail, n)
-      else if (rightSet.size == n){
-        val s1 = g3(leftSet, rightSet)
-        rightSet.map(x => leftSet + x) ++ s1 + rightSet
-      } else
-      Set.empty
-    }
-
-    def g3[A](leftSet: Set[A], rightSet: Set[A]): Set[Set[A]] = {
-      val head = leftSet.head
-      val tail = leftSet.tail
-      val s1 = rightSet.map(x => rightSet-x+head)
-      val s2 = if (tail.nonEmpty) g3(tail, rightSet) else Set.empty
-      s1 ++ s2
+      val s1 = if (n > 1 && rightSet.size > n) {
+        val partSet = g2(Set(rightSet.head), rightSet.tail, n-1)
+        partSet.map(x => x ++ leftSet)
+      } else Set.empty
+      val s2 = if (n == 1) {
+        rightSet.map(x => leftSet+x)
+      } else Set.empty
+      val s3 = if (rightSet.size > n && n > 1) {
+        val partSet = g2(Set.empty, rightSet.tail, n)
+        partSet.map(x => x ++ leftSet)
+      } else Set.empty
+      val s4 = if (rightSet.size == n) {
+        Set(rightSet)
+      } else Set.empty
+      s1 ++ s2 ++ s3 ++ s4
     }
   }
 
   def main(args: Array[String]): Unit = {
 //    test1()
-    test2(limit = 10, len = 3)
+    for {
+      len <- 1 to 9
+    } yield test2(limit = 10, len = len)
+
   }
 
   def test1() = {

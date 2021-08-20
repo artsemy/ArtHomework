@@ -36,29 +36,39 @@ object Less3 {
     }
 
     def g2[A](leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
-      //(_)(a, b, c, ...)^n => (a)(b, c, ...)^n-1
-      val s1 = if (rightSet.size >= n && n > 1)
-        g2(Set(rightSet.head), rightSet.tail, n-1)
-      else Set.empty
-      //(_)(a, b, c, ...)^n => (b)(c, ...)^n-1
-      val s2 = if (rightSet.size > n && n > 1)
-        g2(Set(rightSet.tail.head), rightSet.tail.tail, n-1)
-      else Set.empty
-      //
-      val s3 = if (rightSet.size - n > 1 && n > 1)
-        g2(Set(rightSet.tail.tail.head), rightSet.tail.tail.tail, n-1)
-      else Set.empty
+      if (rightSet.size > n)
+        g2(leftSet + rightSet.head, rightSet.tail, n)
+      else if (rightSet.size == n){
+        val s1 = g3(leftSet, rightSet)
+        rightSet.map(x => leftSet + x) ++ s1 + rightSet
+      } else
+      Set.empty
+    }
 
-      val s4 = if (n == 1) rightSet.map(x => leftSet + x)
-      else (s1 ++ s2 ++ s3).map(x => leftSet ++ x)
-      s4
+    def g3[A](leftSet: Set[A], rightSet: Set[A]): Set[Set[A]] = {
+      val head = leftSet.head
+      val tail = leftSet.tail
+      val s1 = rightSet.map(x => rightSet-x+head)
+      val s2 = if (tail.nonEmpty) g3(tail, rightSet) else Set.empty
+      s1 ++ s2
     }
   }
 
   def main(args: Array[String]): Unit = {
-//    println(part1.totalVegetableWeights)
-    val resSet = part2.allSubsetsOfSizeN((1 to 6).toSet, 2)
-    println(resSet.size + " - " + resSet)
+//    test1()
+    test2(limit = 5, len = 3)
   }
+
+  def test1() = {
+    println(part1.totalVegetableWeights)
+  }
+
+  def test2(start: Int = 1, limit: Int, len: Int) = {
+    val startSet = (start to limit).toSet
+    val resultSet = part2.allSubsetsOfSizeN(startSet, len)
+    val validSet = startSet.subsets(len).toSet
+    println(resultSet == validSet)
+  }
+
 
 }

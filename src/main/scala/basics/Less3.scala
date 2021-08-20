@@ -54,23 +54,52 @@ object Less3 {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-//    test1()
-    for {
-      len <- 1 to 9
-    } yield test2(limit = 10, len = len)
+  object part3 {
+    // Task 2
 
+    // Implement a special sort which sorts the keys of a map (K) according to their associated
+    // values (V).
+    //
+    // In case of "ties" (equal values) it should group these keys K into Set-s in the results.
+    //
+    // The input is a map where keys (K) are the values to be sorted and values are their associated numeric
+    // values.
+    //
+    // The output is a list (in ascending order according to the associated `Int` values) of tuples of `Set`-s
+    // with values from K, and the associated value V for these values in the `Set`.
+    //
+    // For example:
+    //
+    // Input `Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)` should result in
+    // output `List(Set("e") -> 0, Set("a", "d") -> 1, Set("b", "f", "g") -> 2, Set("c") -> 4)`.
+    def sortConsideringEqualValues[T](map: Map[T, Int]): List[(Set[T], Int)] = {
+      val l1 = map.toList
+
+    }
   }
 
-  def test1() = {
+  def main(args: Array[String]): Unit = {
+//    test1()
+//    test2(limit = 7, len = 4)
+    test3()
+  }
+
+  def test1(): Unit = {
     println(part1.totalVegetableWeights)
   }
 
-  def test2(start: Int = 1, limit: Int, len: Int) = {
+  def test2(start: Int = 1, limit: Int, len: Int): Unit = {
     val startSet = (start to limit).toSet
     val resultSet = part2.allSubsetsOfSizeN(startSet, len)
     val validSet = startSet.subsets(len).toSet
     println(resultSet == validSet)
+  }
+
+  def test3(): Unit = {
+    val initMap = Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)
+    val resultList = part3.sortConsideringEqualValues(initMap)
+    val validList = List(Set("e") -> 0, Set("a", "d") -> 1, Set("b", "f", "g") -> 2, Set("c") -> 4)
+    println(resultList == validList)
   }
 
 

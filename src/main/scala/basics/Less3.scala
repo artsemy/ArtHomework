@@ -2,7 +2,7 @@ package basics
 
 object Less3 {
 
-  object part1 {
+  object ex1 {
     val vegetableAmounts = Map(
       "tomatoes"  -> 17,
       "peppers"   -> 234,
@@ -25,36 +25,33 @@ object Less3 {
     }
   }
 
-  object part2 {
+  object ex2 {
     // For example, `allSubsetsOfSizeN(Set(1, 2, 3), 2) == Set(Set(1, 2), Set(2, 3), Set(1, 3))`.
     // Hints for implementation:
     //   - Handle the trivial case where `n == 1`.
     //   - For other `n`, for each `set` element `elem`, generate all subsets of size `n - 1` from the set
     //     that don't include `elem`, and add `elem` to them.
     def allSubsetsOfSizeN[A](set: Set[A], n: Int): Set[Set[A]] = {
-      g2(Set.empty, set, n)
-    }
 
-    def g2[A](leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
-      val s1 = if (n > 1 && rightSet.size > n) {
-        val partSet = g2(Set(rightSet.head), rightSet.tail, n-1)
-        partSet.map(x => x ++ leftSet)
-      } else Set.empty
-      val s2 = if (n == 1) {
-        rightSet.map(x => leftSet+x)
-      } else Set.empty
-      val s3 = if (rightSet.size > n && n > 1) {
-        val partSet = g2(Set.empty, rightSet.tail, n)
-        partSet.map(x => x ++ leftSet)
-      } else Set.empty
-      val s4 = if (rightSet.size == n) {
-        Set(rightSet)
-      } else Set.empty
-      s1 ++ s2 ++ s3 ++ s4
+      def count(leftSet: Set[A], rightSet: Set[A], n: Int): Set[Set[A]] = {
+        val rSize = rightSet.size
+        (rSize, n) match {
+          case (size, n) if size > n && n > 1 =>
+            val s1 = count(Set(rightSet.head), rightSet.tail, n - 1)
+            val s2 = count(Set.empty, rightSet.tail, n)
+            (s1 ++ s2).map(x => x ++ leftSet)
+          case (size, n) if size == n => Set(rightSet)
+          case (_, n) if n == 1 => rightSet.map(x => leftSet + x)
+        }
+      }
+
+      if (n < 1) Set(Set.empty)
+      else if (n > set.size) Set.empty
+      else count(Set.empty, set, n)
     }
   }
 
-  object part3 {
+  object ex3 {
     // Task 2
 
     // Implement a special sort which sorts the keys of a map (K) according to their associated
@@ -73,31 +70,38 @@ object Less3 {
     // Input `Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)` should result in
     // output `List(Set("e") -> 0, Set("a", "d") -> 1, Set("b", "f", "g") -> 2, Set("c") -> 4)`.
     def sortConsideringEqualValues[T](map: Map[T, Int]): List[(Set[T], Int)] = {
-      val l1 = map.toList
 
+      def getSetByVal(value: Int, initMap: Map[T, Int]): Set[T] = {
+        val filteredMap = initMap.filter {case (_, number) => number == value}
+        filteredMap.keySet
+      }
+
+      val valSet = map.values.toSet
+      val resList = valSet.map(x => (getSetByVal(x, map), x)).toList
+      resList.sortBy {case (_, value) => value}
     }
   }
 
   def main(args: Array[String]): Unit = {
-//    test1()
-//    test2(limit = 7, len = 4)
+    test1()
+    test2(limit = 8, len = 5)
     test3()
   }
 
   def test1(): Unit = {
-    println(part1.totalVegetableWeights)
+    println(ex1.totalVegetableWeights)
   }
 
   def test2(start: Int = 1, limit: Int, len: Int): Unit = {
-    val startSet = (start to limit).toSet
-    val resultSet = part2.allSubsetsOfSizeN(startSet, len)
-    val validSet = startSet.subsets(len).toSet
+    val initSet = (start to limit).toSet
+    val resultSet = ex2.allSubsetsOfSizeN(initSet, len)
+    val validSet = initSet.subsets(len).toSet
     println(resultSet == validSet)
   }
 
   def test3(): Unit = {
     val initMap = Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)
-    val resultList = part3.sortConsideringEqualValues(initMap)
+    val resultList = ex3.sortConsideringEqualValues(initMap)
     val validList = List(Set("e") -> 0, Set("a", "d") -> 1, Set("b", "f", "g") -> 2, Set("c") -> 4)
     println(resultList == validList)
   }

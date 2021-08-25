@@ -1,5 +1,7 @@
 package adt
 
+import scala.util.Random
+
 object Less5 {
 
   //european roulette
@@ -91,10 +93,43 @@ object Less5 {
     }
   }
 
+  sealed abstract case class ValidNumber private (value: Int)
+  object ValidNumber {
+    def create(): ValidNumber = new ValidNumber(Random.nextInt(37)) {}
+  }
+
+  final case class Chips(value: Int)
+  final case class Player(name: String, id: Long)
+  final case class PlayerBet(playerId: Long, bet: RouletteBet, chips: Chips)
+  final case class GameResult(playerId: Long, price: Chips)
+
+  def makeBet(playerId: Long, bet: RouletteBet, chips: Chips): PlayerBet = PlayerBet(playerId, bet, chips)
+  def generateNumber(): ValidNumber = ValidNumber.create()
+  def runGame(bets: List[PlayerBet], number: ValidNumber): List[GameResult] = {
+    bets.map(x => betResult(x, number))
+  }
+  def betResult(playerBet: PlayerBet, number: ValidNumber): GameResult = {
+    val bet = playerBet.bet
+    val price = if (bet.combination.numbers.contains(number.value))
+      Chips(playerBet.chips.value*bet.odds)
+    else Chips(0)
+    GameResult(playerBet.playerId, price)
+  }
+
   import RouletteBet._
+
   def main(args: Array[String]): Unit = {
-    println("Hello world!!!")
-    println(CornerBet(8).combination.numbers)
+    val playerBets = List(PlayerBet(1l, RedBet, Chips(10)),
+      PlayerBet(2l, BlackBet, Chips(20)),
+      PlayerBet(3l, OddBet, Chips(30)),
+      PlayerBet(4l, EvenBet, Chips(40)),
+      PlayerBet(5l, LowBet, Chips(30)),
+      PlayerBet(6l, LastDozenBet, Chips(20)),
+      PlayerBet(7l, CornerBet(13), Chips(10)))
+    val number = ValidNumber.create()
+    val results = runGame(playerBets, number)
+    println(number)
+    println(results)
   }
 
 }

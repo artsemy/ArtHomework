@@ -3,82 +3,98 @@ package adt
 object Less5 {
 
   //european roulette
-  sealed abstract class Bet(val odds: Int, val combination: RouletteNumbers)
-  object Bet {
+  sealed abstract class RouletteBet(val odds: Int, val combination: RouletteNumbers)
+  object RouletteBet {
     import RouletteNumbers._
-    //evens
-    final case object Red extends Bet(1, RedBetNumbers)
-    final case object Black extends Bet(1, BlackBetNumbers)
-    final case object Even extends Bet(1, EvenBetNumbers)
-    final case object Odd extends Bet(1, OddBetNumbers)
-    final case object LowBet extends Bet(1, LowBetNumbers)
-    final case object HighBet extends Bet(1, HighBetNumbers)
-    //2 to 1
-    final case object FirstDozen extends Bet(2, FirstDozenNumbers)
-    final case object MiddleDozen extends Bet(2, MiddleDozenNumbers)
-    final case object LastDozen extends Bet(2, LastDozenNumbers)
-    final case class ColumnBet(firstNumber: Int) extends Bet(2, ColumnBetNumbers(firstNumber))
-    //Longer Odds
-    final case class LineBet(firstNumber: Int) extends Bet(5, LineBetNumbers(firstNumber))
-    final case class CornerBet(firstNumber: Int) extends Bet(8, CornerBetNumbers(firstNumber))
-    final case class StreetBet(firstNumber: Int) extends Bet(11, StreetBetNumbers(firstNumber))
-    final case class SplitBet(firstNumber: Int) extends Bet(17, SplitBetNumbers(firstNumber))
-    final case class StraightUp(firstNumber: Int) extends Bet(35, StreetBetNumbers(firstNumber))
+
+    final case object RedBet extends RouletteBet(1, RedBetNumbers)
+    final case object BlackBet extends RouletteBet(1, BlackBetNumbers)
+    final case object EvenBet extends RouletteBet(1, EvenBetNumbers)
+    final case object OddBet extends RouletteBet(1, OddBetNumbers)
+    final case object LowBet extends RouletteBet(1, LowBetNumbers)
+    final case object HighBet extends RouletteBet(1, HighBetNumbers)
+
+    final case object FirstDozenBet extends RouletteBet(2, FirstDozenNumbers)
+    final case object MiddleDozenBet extends RouletteBet(2, MiddleDozenNumbers)
+    final case object LastDozenBet extends RouletteBet(2, LastDozenNumbers)
+    final case class ColumnBet(firstNumber: Int) extends RouletteBet(2, ColumnBetNumbers(firstNumber))
+
+    final case class LineBet(firstNumber: Int) extends RouletteBet(5, LineBetNumbers(firstNumber))
+    final case class CornerBet(firstNumber: Int) extends RouletteBet(8, CornerBetNumbers(firstNumber))
+    final case class StreetBet(firstNumber: Int) extends RouletteBet(11, StreetBetNumbers(firstNumber))
+    final case class SplitBet(firstNumber: Int) extends RouletteBet(17, SplitBetNumbers(firstNumber))
+    final case class StraightUpBet(firstNumber: Int) extends RouletteBet(35, StreetBetNumbers(firstNumber))
   }
 
   sealed trait RouletteNumbers {
     def numbers: List[Int]
   }
   object RouletteNumbers {
-    final case object RedBetNumbers extends RouletteNumbers { //function
-      override def numbers: List[Int] = List(1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36)
+    final case object RedBetNumbers extends RouletteNumbers {
+      override def numbers: List[Int] =
+        fold(start = 1, end = 9, step = 2) ++
+        fold(start = 12, end = 18, step = 2) ++
+        fold(start = 19, end = 27, step = 2) ++
+        fold(start = 30, end = 36, step = 2)
     }
     final case object BlackBetNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = List(2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35)
+      override def numbers: List[Int] =
+        fold(start = 2, end = 10, step = 2) ++
+        fold(start = 11, end = 17, step = 2) ++
+        fold(start = 20, end = 28, step = 2) ++
+        fold(start = 39, end = 35, step = 2)
     }
     final case object EvenBetNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (2 to 36 by 2).toList
+      override def numbers: List[Int] = fold(start = 2, end = 36, step = 2)
     }
     final case object OddBetNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (1 to 35 by 2).toList
+      override def numbers: List[Int] = fold(start = 1, end = 35, step = 2)
     }
     final case object LowBetNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (1 to 18).toList
+      override def numbers: List[Int] = fold(start = 1, end = 18)
     }
     final case object HighBetNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (19 to 36).toList
+      override def numbers: List[Int] = fold(start = 19, end = 36)
     }
     final case object FirstDozenNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (1 to 12).toList
+      override def numbers: List[Int] = fold(start = 1, end = 12)
     }
     final case object MiddleDozenNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (13 to 24).toList
+      override def numbers: List[Int] = fold(start = 13, end = 24)
     }
     final case object LastDozenNumbers extends RouletteNumbers {
-      override def numbers: List[Int] = (25 to 36).toList
+      override def numbers: List[Int] = fold(start = 25, end = 36)
     }
     final case class ColumnBetNumbers(columnNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (columnNumber to 36 by 3).toList
+      override def numbers: List[Int] = fold(start = columnNumber, end = 36, step = 3)
     }
     final case class LineBetNumbers(firstNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (0 to 6).map(x => x + firstNumber).toList
+      override def numbers: List[Int] = fold(end = 5, addition = firstNumber)
     }
-    final case class CornerBetNumbers(firstNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (0 to 4).map(x => x + firstNumber).toList
+    final case class CornerBetNumbers(firstNumber: Int) extends RouletteNumbers { //sort???
+      override def numbers: List[Int] =
+        fold(start = firstNumber, end = firstNumber+3, step = 3) ++
+        fold(start = firstNumber+1, end = firstNumber+1+3, step = 3)
     }
     final case class StreetBetNumbers(firstNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (0 to 3).map(x => x + firstNumber).toList
+      override def numbers: List[Int] = fold(end = 2, addition = firstNumber)
     }
     final case class SplitBetNumbers(firstNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (0 to 1).map(x => x + firstNumber).toList
+      override def numbers: List[Int] = fold(end = 1, addition = firstNumber)
     }
     final case class StraightUpNumber(firstNumber: Int) extends RouletteNumbers {
-      override def numbers: List[Int] = (0 to 0).map(x => x + firstNumber).toList
+      override def numbers: List[Int] = fold(end = 0, addition = firstNumber)
+    }
+
+    private def fold(start: Int = 0, end: Int, step: Int = 1, addition: Int = 0): List[Int] = {
+      (start to end by step).map(x => x + addition).toList
     }
   }
 
+  import RouletteBet._
   def main(args: Array[String]): Unit = {
     println("Hello world!!!")
+    println(CornerBet(8).combination.numbers)
   }
 
 }

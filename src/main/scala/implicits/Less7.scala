@@ -61,6 +61,14 @@ object Less7 {
       }
     }
 
+    /*
+    should be defined on any T which has Ordering[T] and return second biggest value from the sequence
+    if it exists
+
+    should work on our custom HDEYears
+
+    change the signature accordingly, add implicit instances if needed
+     */
     def secondBiggestValue[T: Ordering](values: Seq[T]): Option[T] = {
       values.sorted match {
         case Nil => None
@@ -69,6 +77,7 @@ object Less7 {
       }
     }
 
+    //____________________________________________________________________________________________________________
     case class CustomNumber(value: Float)
 
     object instances2 {
@@ -97,6 +106,13 @@ object Less7 {
       }
     }
 
+    /*
+    should be defined on any T which has Summable[T], should return sum value if it can be obtained
+
+    should work on our custom CustomNumber
+
+    change the signature accordingly, add implicit instances if needed
+     */
     def sum[T: Numeric](values: Seq[T]): Option[T] = {
       values.length match {
         case 0 => None
@@ -110,11 +126,12 @@ object Less7 {
     import Exercise2.syntax._
     import MoreImplicitParameters.instances._
     println(12346789.reverseShow)
-    //ex3
+    //ex3 p1
     import Exercise3._
     import Exercise3.instances._
     val seq = List(HDEYears(20), HDEYears(10), HDEYears(15))
     println(secondBiggestValue(seq))
+    //ex3 p2
     import Exercise3.instances2._
     val seq2 = List(CustomNumber(2.3f), CustomNumber(5.5f), CustomNumber(2.1f))
     println(sum(seq2))

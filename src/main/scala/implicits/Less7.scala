@@ -54,11 +54,7 @@ object Less7 {
     case class HDEYears(value: Long)
 
     object instances {
-      implicit val HDEYearsOrdering: Ordering[HDEYears] = (x: HDEYears, y: HDEYears) => x.value - y.value match {
-        case z if z > 0 => 1
-        case z if z < 0 => -1
-        case _ => 0
-      }
+      implicit val HDEYearsOrdering: Ordering[HDEYears] = (x: HDEYears, y: HDEYears) => (x.value - y.value).toInt
     }
 
     /*
@@ -80,29 +76,20 @@ object Less7 {
     //____________________________________________________________________________________________________________
     case class CustomNumber(value: Float)
 
+    trait Summable[T] {
+      def count(seq: Seq[T]): Option[T]
+    }
+
     object instances2 {
-      implicit val customNumberNumeric: Numeric[CustomNumber] = new Numeric[CustomNumber] {
-        override def plus(x: CustomNumber, y: CustomNumber): CustomNumber = CustomNumber(Numeric[Float].plus(x.value, y.value))
+      implicit val customNumberSummable: Summable[CustomNumber] = (seq: Seq[CustomNumber]) => {
+        if (seq.isEmpty) None
+        else Some(seq.foldLeft(CustomNumber(0))((x, y) => CustomNumber(x.value + y.value)))
+      }
+    }
 
-        override def minus(x: CustomNumber, y: CustomNumber): CustomNumber = CustomNumber(Numeric[Float].minus(x.value, y.value))
-
-        override def times(x: CustomNumber, y: CustomNumber): CustomNumber = CustomNumber(Numeric[Float].times(x.value, y.value))
-
-        override def negate(x: CustomNumber): CustomNumber = CustomNumber(Numeric[Float].negate(x.value))
-
-        override def fromInt(x: Int): CustomNumber = CustomNumber(x.toFloat)
-
-        override def parseString(str: String): Option[CustomNumber] = Numeric[Float].parseString(str).map(CustomNumber)
-
-        override def toInt(x: CustomNumber): Int = Numeric[Float].toInt(x.value)
-
-        override def toLong(x: CustomNumber): Long = Numeric[Float].toLong(x.value)
-
-        override def toFloat(x: CustomNumber): Float = Numeric[Float].toFloat(x.value)
-
-        override def toDouble(x: CustomNumber): Double = Numeric[Float].toDouble(x.value)
-
-        override def compare(x: CustomNumber, y: CustomNumber): Int = Numeric[Float].compare(x.value, y.value)
+    object syntax2 {
+      implicit class Custom[T: Summable](seq: Seq[T]) {
+        def sum2: Option[T] = Exercise3.sum2(seq)
       }
     }
 
@@ -113,12 +100,7 @@ object Less7 {
 
     change the signature accordingly, add implicit instances if needed
      */
-    def sum[T: Numeric](values: Seq[T]): Option[T] = {
-      values.length match {
-        case 0 => None
-        case _ => Some(values.sum)
-      }
-    }
+    def sum2[T](values: Seq[T])(implicit summable: Summable[T]): Option[T] = summable.count(values)
   }
 
   def main(args: Array[String]): Unit = {
@@ -133,8 +115,9 @@ object Less7 {
     println(secondBiggestValue(seq))
     //ex3 p2
     import Exercise3.instances2._
+    import Exercise3.syntax2._
     val seq2 = List(CustomNumber(2.3f), CustomNumber(5.5f), CustomNumber(2.1f))
-    println(sum(seq2))
+    println(seq2.sum2) //sum2 because `sum` asks Numerics[T]; or not to use syntax_
   }
 
 }

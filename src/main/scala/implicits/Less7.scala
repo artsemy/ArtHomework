@@ -53,7 +53,7 @@ object Less7 {
   object Exercise3 {
     case class HDEYears(value: Long)
 
-    object instances {
+    object HDEInstances {
       implicit val HDEYearsOrdering: Ordering[HDEYears] = (x: HDEYears, y: HDEYears) => (x.value - y.value).toInt
     }
 
@@ -77,14 +77,14 @@ object Less7 {
     case class CustomNumber(value: Float)
 
     trait Summable[T] {
-      def count(seq: Seq[T]): Option[T]
+      def apply(seq: Seq[T]): Option[T] //naming???
       def plus(a: T, b: T): T
       def zero: T
     }
 
-    object instances2 {
+    object CustomNumInstances {
       implicit val customNumberSummable: Summable[CustomNumber] = new Summable[CustomNumber] {
-        override def count(seq: Seq[CustomNumber]): Option[CustomNumber] = {
+        override def apply(seq: Seq[CustomNumber]): Option[CustomNumber] = {
           if (seq.isEmpty) None
           else Some(seq.foldLeft(zero)((x, y) => plus(x, y)))
         }
@@ -95,7 +95,7 @@ object Less7 {
       }
     }
 
-    object syntax2 {
+    object CustomNumSyntax {
       implicit class Custom[T: Summable](seq: Seq[T]) {
         def sum2: Option[T] = Exercise3.sum2(seq)
       }
@@ -108,7 +108,7 @@ object Less7 {
 
     change the signature accordingly, add implicit instances if needed
      */
-    def sum2[T](values: Seq[T])(implicit summable: Summable[T]): Option[T] = summable.count(values)
+    def sum2[T](values: Seq[T])(implicit summable: Summable[T]): Option[T] = summable.apply(values) //naming
   }
 
   def main(args: Array[String]): Unit = {
@@ -118,12 +118,12 @@ object Less7 {
     println(12346789.reverseShow)
     //ex3 p1
     import Exercise3._
-    import Exercise3.instances._
+    import Exercise3.HDEInstances._
     val seq = List(HDEYears(20), HDEYears(10), HDEYears(15))
     println(secondBiggestValue(seq))
     //ex3 p2
-    import Exercise3.instances2._
-    import Exercise3.syntax2._
+    import Exercise3.CustomNumInstances._
+    import Exercise3.CustomNumSyntax._
     val seq2 = List(CustomNumber(2.3f), CustomNumber(5.5f), CustomNumber(2.1f))
     println(seq2.sum2) //sum2 because `sum` asks Numerics[T]; or not to use syntax_
   }

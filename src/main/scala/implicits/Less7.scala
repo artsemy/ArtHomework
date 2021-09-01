@@ -78,12 +78,20 @@ object Less7 {
 
     trait Summable[T] {
       def count(seq: Seq[T]): Option[T]
+      def plus(a: T, b: T): T
+      def zero: T
     }
 
     object instances2 {
-      implicit val customNumberSummable: Summable[CustomNumber] = (seq: Seq[CustomNumber]) => {
-        if (seq.isEmpty) None
-        else Some(seq.foldLeft(CustomNumber(0))((x, y) => CustomNumber(x.value + y.value)))
+      implicit val customNumberSummable: Summable[CustomNumber] = new Summable[CustomNumber] {
+        override def count(seq: Seq[CustomNumber]): Option[CustomNumber] = {
+          if (seq.isEmpty) None
+          else Some(seq.foldLeft(zero)((x, y) => plus(x, y)))
+        }
+
+        override def plus(a: CustomNumber, b: CustomNumber): CustomNumber = CustomNumber(a.value + b.value)
+
+        override def zero: CustomNumber = CustomNumber(0)
       }
     }
 

@@ -66,7 +66,7 @@ object Less4 {
         list match {
           case first :: second :: tail if second - first == 1 => build(str + first + "H", second :: tail)
           case first :: second :: tail => build(str + first + ",", second :: tail)
-          case first :: second :: Nil if second - first == 1 => str + first + "H" + second
+//          case first :: second :: Nil if second - first == 1 => str + first + "H" + second
           case first :: Nil => str + first
           case Nil => ""
         }

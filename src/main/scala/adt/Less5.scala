@@ -80,7 +80,7 @@ object Less5 {
     val results = runGame(playerBets, number)
     println(number)
     println(results)
-    playerBets.foreach(x => println(x.playerId + " " + x.bet))
+    playerBets.foreach(x => println(x.playerId.toString + " " + x.bet.toString))
   }
 
 }

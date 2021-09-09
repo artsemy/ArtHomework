@@ -119,7 +119,8 @@ object Less9 {
       def validatePersonBirthDayType: AllErrorsOr[Date] = birthDay.validNec
 
       def validatePersonBirthDayBounds: AllErrorsOr[Date] = {
-        if (birthDay.after(new Date("1940-01-01")) && birthDay.before(new Date("2010-01-01"))) birthDay.validNec
+//        birthDay.after(new Date("1940-01-01")) && birthDay.before(new Date("2010-01-01"))
+        if (birthDay.after(new Date(-946782000L)) && birthDay.before(new Date(1262296800L))) birthDay.validNec
         else BirthDayIsOutOfBounds.invalidNec
       }
 
@@ -150,12 +151,12 @@ object Less9 {
       def validatePaymentCardNumberType: AllErrorsOr[Long] = number.validNec
 
       def validatePaymentCardNumberLength: AllErrorsOr[Long] = {
-        if (number > -1 && number < 10000000000000000l) number.validNec
+        if (number > -1 && number < 10000000000000000L) number.validNec
         else CardNumberLengthIsInvalid.invalidNec
       }
 
       def validatePaymentCardNumberContent: AllErrorsOr[Long] = {
-        if (number > -1 && number < 10000000000000000l) number.validNec
+        if (number > -1 && number < 10000000000000000L) number.validNec
         else CardNumberIsOutOfBounds.invalidNec
       }
 
@@ -190,6 +191,20 @@ object Less9 {
       validatePaymentCardSecurityCodeType *> validatePaymentCardSecurityCodeLength *>
         validatePaymentCardSecurityCodeContent
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    import AccountValidator.validate
+    val personValid = Person("arty", 20, new Date(978300000L), "qwerqwerqwer22aa") //"2001-01-01"
+    val paymentCardValid = PaymentCard(4444444444444444L, new Date(1640984400L), 1111) //"2022-01-01"
+    val accountValid = Account(personValid, paymentCardValid)
+
+    val personInvalid = Person("ar", 17, new Date(1420059600L), "qwerqwerqw2222aa") //"2015-01-01"
+    val paymentCardInvalid = PaymentCard(44444444444444445L, new Date(1735678800L), 1111) //"2025-01-01"
+    val accountInvalid = Account(personInvalid, paymentCardInvalid)
+
+    println(validate(personValid, paymentCardValid))
+    println(validate(personInvalid, paymentCardInvalid))
   }
 
 }

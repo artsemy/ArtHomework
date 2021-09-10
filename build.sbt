@@ -12,7 +12,7 @@ scalacOptions ++= Seq(
   "-Xsource:3"
 )
 
-//ThisBuild / scalafmtOnCompile := true
+ThisBuild / scalafmtOnCompile := true
 
 val http4sVersion           = "0.21.7"
 val circeVersion            = "0.13.0"

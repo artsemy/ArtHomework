@@ -2,28 +2,67 @@ package error_handling
 
 import cats.data.ValidatedNec
 import cats.syntax.all.*
-import java.util.Date
+import eu.timepit.refined.*
+import eu.timepit.refined.api.{RefType, Refined}
+import eu.timepit.refined.auto.*
+import eu.timepit.refined.numeric.*
+import eu.timepit.refined.string.MatchesRegex
+
+import java.text.SimpleDateFormat
+import java.util.Calendar
 
 object Less9 {
-  // think about adding Refined integration here to provide type level validation
+
+  final case class PersonDTO(
+    name:           String,
+    age:            String,
+    birthDay:       String,
+    passportNumber: String
+  )
+
+  final case class PaymentCardDTO(
+    cardNumber:     String,
+    expirationDate: String,
+    securityCode:   String
+  )
+
+  type Name           = String Refined MatchesRegex[W.`"""[A-Z][a-z]{2,29}"""`.T] //Arty
+  type Age            = Int Refined Interval.Closed[W.`18`.T, W.`75`.T] //18-75
+  type PassportNumber = String Refined MatchesRegex[W.`"""\\d{10}[A-Z]{2}\\d{2}"""`.T] //1234567890AA22
+
+  type DateStr = String Refined MatchesRegex[W.`"""\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"""`.T] //2021-09-10
+
+  type CardNumber   = String Refined MatchesRegex[W.`"""\\d{16}"""`.T]
+  type SecurityCode = String Refined MatchesRegex[W.`"""\\d{4}"""`.T]
+
   final case class Account(person: Person, card: PaymentCard)
-  final case class Person(name: String, age: Int, birthDay: Date, passportNumber: String) // name, age, birthDay, passportNumber
-  final case class PaymentCard(cardNumber: Long, expirationDate: Date, securityCode: Int) // card number, expirationDate, securityCode etc
+
+  final case class Person(
+    name:           Name,
+    age:            Age,
+    birthDay:       DateStr,
+    passportNumber: PassportNumber
+  )
+
+  final case class PaymentCard(
+    cardNumber:     CardNumber,
+    expirationDate: DateStr,
+    securityCode:   SecurityCode
+  )
 
   sealed trait AccountValidationError
+
   object AccountValidationError {
-    final case object UsernameLengthIsInvalid extends AccountValidationError {
-      override def toString: String = "Username must be between 3 and 30 characters"
-    }
-    final case object UsernameHasSpecialCharacters extends AccountValidationError {
-      override def toString: String = "Username cannot contain special characters"
+
+    final case object UsernameIsInvalid extends AccountValidationError {
+      override def toString: String = "Username must be 3-30 length and cannot contain special characters"
     }
 
     final case object AgeIsNotNumeric extends AccountValidationError {
       override def toString: String = "Age must be a number"
     }
     final case object AgeIsOutOfBounds extends AccountValidationError {
-      override def toString: String = "Student must be of age 18 to 75"
+      override def toString: String = "Age must be from 18 to 75"
     }
 
     final case object BirthDayIsNotDate extends AccountValidationError {
@@ -33,18 +72,12 @@ object Less9 {
       override def toString: String = "Birthday must be in (01.01.1940 to 01.01.2010)"
     }
 
-    final case object PassportNumberWrongFormat extends AccountValidationError {
+    final case object PassportNumberIsInvalid extends AccountValidationError {
       override def toString: String = "Passport number must be /10 digits 2 chars 2 digits/"
     }
 
-    final case object CardNumberIsNotNumeric extends AccountValidationError {
-      override def toString: String = "Card number must be a number"
-    }
-    final case object CardNumberLengthIsInvalid extends AccountValidationError {
-      override def toString: String = "Card number must be 16 digits"
-    }
-    final case object CardNumberIsOutOfBounds extends AccountValidationError {
-      override def toString: String = "Card number must be from 0000,0000,0000,0000 to 9999,9999,9999,9999"
+    final case object CardNumberIsInvalid extends AccountValidationError {
+      override def toString: String = "Card number must be a number and contains 16 digits"
     }
 
     final case object ExpirationDateIsNotDate extends AccountValidationError {
@@ -54,14 +87,8 @@ object Less9 {
       override def toString: String = "Expiration date must be in (now to now + 3 years)"
     }
 
-    final case object SecurityCodeIsNotNumeric extends AccountValidationError {
-      override def toString: String = "Security code must be a number"
-    }
-    final case object SecurityCodeLengthIsInvalid extends AccountValidationError {
+    final case object SecurityCodeIsInvalid extends AccountValidationError {
       override def toString: String = "Security code must be 4 digits"
-    }
-    final case object SecurityCodeIsOutOfBounds extends AccountValidationError {
-      override def toString: String = "Security code must be from 0000 to 9999"
     }
 
   }
@@ -72,7 +99,7 @@ object Less9 {
     import PaymentCardValidator.validatePaymentCard
     type AllErrorsOr[A] = ValidatedNec[AccountValidationError, A]
 
-    def validate(person: Person, card: PaymentCard): AllErrorsOr[Account] = (
+    def validate(person: PersonDTO, card: PaymentCardDTO): AllErrorsOr[Account] = (
       validatePerson(person),
       validatePaymentCard(card)
     ).mapN(Account)
@@ -83,128 +110,111 @@ object Less9 {
     import AccountValidator.AllErrorsOr
     import AccountValidationError.*
 
-    def validatePerson(person: Person): AllErrorsOr[Person] = (
+    def validatePerson(person: PersonDTO): AllErrorsOr[Person] = (
       validatePersonName(person.name),
       validatePersonAge(person.age),
       validatePersonBirthDay(person.birthDay),
       validatePersonPassportNumber(person.passportNumber)
-      ).mapN(Person)
+    ).mapN(Person)
 
-    def validatePersonName(name: String): AllErrorsOr[String] = {
-      def validatePersonNameLength: AllErrorsOr[String] = {
-        if (name.length > 3 && name.length < 30) name.validNec
-        else UsernameLengthIsInvalid.invalidNec
-      }
-
-      def  validatePersonNameContents: AllErrorsOr[String] = {
-        if (name.matches("[a-zA-z]{3,30}")) name.validNec
-        else UsernameHasSpecialCharacters.invalidNec
-      }
-
-      validatePersonNameLength *> validatePersonNameContents
+    def validatePersonName(name: String): AllErrorsOr[Name] = {
+      RefType
+        .applyRef[Name](name)
+        .left
+        .map(_ => UsernameIsInvalid)
+        .toValidatedNec
     }
 
-    def validatePersonAge(age: Int): AllErrorsOr[Int] = {
-      def validatePersonAgeType: AllErrorsOr[Int] = age.validNec //fix everywhere!!!
-
-      def validatePersonAgeBounds: AllErrorsOr[Int] = {
-        if (age > 18 && age < 75) age.validNec
-        else AgeIsOutOfBounds.invalidNec
-      }
-
-      validatePersonAgeType *> validatePersonAgeBounds
+    def validatePersonAge(age: String): AllErrorsOr[Age] = {
+      (age.toIntOption match {
+        case None => Left(AgeIsNotNumeric)
+        case Some(value) =>
+          RefType
+            .applyRef[Age](value)
+            .left
+            .map(_ => AgeIsOutOfBounds)
+      }).toValidatedNec
     }
 
-    def validatePersonBirthDay(birthDay: Date): AllErrorsOr[Date] = {
-      def validatePersonBirthDayType: AllErrorsOr[Date] = birthDay.validNec
+    def validatePersonBirthDay(birthDay: String): AllErrorsOr[DateStr] = {
+      val year18 = 567648000000L
+      val year75 = 2365200000000L
 
-      def validatePersonBirthDayBounds: AllErrorsOr[Date] = {
-//        birthDay.after(new Date("1940-01-01")) && birthDay.before(new Date("2010-01-01"))
-        if (birthDay.after(new Date(-946782000L)) && birthDay.before(new Date(1262296800L))) birthDay.validNec
-        else BirthDayIsOutOfBounds.invalidNec
-      }
-
-      validatePersonBirthDayType *> validatePersonBirthDayBounds
+      (RefType
+        .applyRef[DateStr](birthDay) match {
+        case Left(_) => Left(BirthDayIsNotDate)
+        case Right(value) =>
+          val formatter = new SimpleDateFormat("yyyy-MM-dd")
+          val bD        = formatter.parse(value).getTime
+          val cD        = Calendar.getInstance().getTime.getTime
+          if (cD - bD > year18 && cD - bD < year75) Right(value)
+          else Left(BirthDayIsOutOfBounds)
+      }).toValidatedNec
     }
 
-    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[String] = {
-      def validatePersonPassportNumberContent: AllErrorsOr[String] = {
-        if (passportNumber.matches("[0-9]{10}[A-Z]{2}[0-9]{2}")) passportNumber.validNec
-        else PassportNumberWrongFormat.invalidNec
-      }
-
-      validatePersonPassportNumberContent
+    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[PassportNumber] = {
+      RefType
+        .applyRef[PassportNumber](passportNumber)
+        .left
+        .map(_ => PassportNumberIsInvalid)
+        .toValidatedNec
     }
+
   }
 
   object PaymentCardValidator {
     import AccountValidator.AllErrorsOr
     import AccountValidationError.*
 
-    def validatePaymentCard(card: PaymentCard): AllErrorsOr[PaymentCard] = (
+    def validatePaymentCard(card: PaymentCardDTO): AllErrorsOr[PaymentCard] = (
       validatePaymentCardNumber(card.cardNumber),
       validatePaymentCardExpirationDate(card.expirationDate),
       validatePaymentCardSecurityCode(card.securityCode)
     ).mapN(PaymentCard)
 
-    def validatePaymentCardNumber(number : Long): AllErrorsOr[Long] = {
-      def validatePaymentCardNumberType: AllErrorsOr[Long] = number.validNec
-
-      def validatePaymentCardNumberLength: AllErrorsOr[Long] = {
-        if (number > -1 && number < 10000000000000000L) number.validNec
-        else CardNumberLengthIsInvalid.invalidNec
-      }
-
-      def validatePaymentCardNumberContent: AllErrorsOr[Long] = {
-        if (number > -1 && number < 10000000000000000L) number.validNec
-        else CardNumberIsOutOfBounds.invalidNec
-      }
-
-      validatePaymentCardNumberType *> validatePaymentCardNumberLength *> validatePaymentCardNumberContent
+    def validatePaymentCardNumber(number: String): AllErrorsOr[CardNumber] = {
+      RefType
+        .applyRef[CardNumber](number)
+        .left
+        .map(_ => CardNumberIsInvalid)
+        .toValidatedNec
     }
 
-    def validatePaymentCardExpirationDate(expirationDate : Date): AllErrorsOr[Date] = {
-      def validatePaymentCardExpirationDateType: AllErrorsOr[Date] = expirationDate.validNec
+    def validatePaymentCardExpirationDate(expirationDate: String): AllErrorsOr[DateStr] = {
+      val year3 = 94608000000L
 
-      def validatePaymentCardExpirationDateBounds: AllErrorsOr[Date] = {
-        if (expirationDate.after(new Date(new Date().getTime)) &&
-          expirationDate.before(new Date(new Date().getTime + 31536000))) expirationDate.validNec
-        else BirthDayIsOutOfBounds.invalidNec
-      }
-
-      validatePaymentCardExpirationDateType *> validatePaymentCardExpirationDateBounds
+      (RefType
+        .applyRef[DateStr](expirationDate) match {
+        case Left(_) => Left(ExpirationDateIsNotDate)
+        case Right(value) =>
+          val formatter = new SimpleDateFormat("yyyy-MM-dd")
+          val eD        = formatter.parse(value).getTime
+          val cD        = Calendar.getInstance().getTime.getTime
+          if (eD - cD < year3) Right(value)
+          else Left(ExpirationDateIsOutOfBounds)
+      }).toValidatedNec
     }
 
-    def validatePaymentCardSecurityCode(securityCode : Int): AllErrorsOr[Int] = {
-      def validatePaymentCardSecurityCodeType: AllErrorsOr[Int] = securityCode.validNec
-
-      def validatePaymentCardSecurityCodeLength: AllErrorsOr[Int] = {
-        if (securityCode > -1 && securityCode < 100000) securityCode.validNec
-        else SecurityCodeLengthIsInvalid.invalidNec
-      }
-
-      def validatePaymentCardSecurityCodeContent: AllErrorsOr[Int] = {
-        if (securityCode > -1 && securityCode < 100000) securityCode.validNec
-        else SecurityCodeIsOutOfBounds.invalidNec
-      }
-
-      validatePaymentCardSecurityCodeType *> validatePaymentCardSecurityCodeLength *>
-        validatePaymentCardSecurityCodeContent
+    def validatePaymentCardSecurityCode(securityCode: String): AllErrorsOr[SecurityCode] = {
+      RefType
+        .applyRef[SecurityCode](securityCode)
+        .left
+        .map(_ => SecurityCodeIsInvalid)
+        .toValidatedNec
     }
   }
 
   def main(args: Array[String]): Unit = {
     import AccountValidator.validate
-    val personValid = Person("arty", 20, new Date(978300000L), "qwerqwerqwer22aa") //"2001-01-01"
-    val paymentCardValid = PaymentCard(4444444444444444L, new Date(1640984400L), 1111) //"2022-01-01"
-    val accountValid = Account(personValid, paymentCardValid)
 
-    val personInvalid = Person("ar", 17, new Date(1420059600L), "qwerqwerqw2222aa") //"2015-01-01"
-    val paymentCardInvalid = PaymentCard(44444444444444445L, new Date(1735678800L), 1111) //"2025-01-01"
-    val accountInvalid = Account(personInvalid, paymentCardInvalid)
+    val personDTOValid      = PersonDTO("Arty", "20", "2001-01-01", "0123456789AA22")
+    val paymentCardDTOValid = PaymentCardDTO("4444444444444444", "2022-01-01", "1111")
 
-    println(validate(personValid, paymentCardValid))
-    println(validate(personInvalid, paymentCardInvalid))
+    val personDTOInvalid      = PersonDTO("ar", "17a", "2015-01-01", "qwerqwerqw2aaa")
+    val paymentCardDTOInvalid = PaymentCardDTO("44444444444444445", "2025-01-01", "11111")
+
+    println(validate(personDTOValid, paymentCardDTOValid))
+    println(validate(personDTOInvalid, paymentCardDTOInvalid))
   }
 
 }

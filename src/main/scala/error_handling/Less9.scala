@@ -179,11 +179,11 @@ object Less9 {
         .toValidatedNec
     }
 
-    def validatePaymentCardExpirationDate(expirationDate: String): AllErrorsOr[DateStr] = {
+    def validatePaymentCardExpirationDate(expirationDate: String): AllErrorsOr[Instant] = {
       val year3 = 94608000000L
 
       (RefType
-        .applyRef[DateStr](expirationDate) match {
+        .applyRef[Instant](expirationDate) match {
         case Left(_) => Left(ExpirationDateIsNotDate)
         case Right(value) =>
           val formatter = new SimpleDateFormat("yyyy-MM-dd")

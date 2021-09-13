@@ -94,14 +94,14 @@ object Less9 {
       validatePaymentCard(card)
     ).mapN(Account)
 
-    def simpleTypeRefValidator[T](str: String, error: AccountValidationError)
-                                 : AllErrorsOr[T] = { //implicit
-      RefType
-        .applyRef[T](str)
-        .left
-        .map(_ => error)
-        .toValidatedNec
-    }
+//    def simpleTypeRefValidator[P](str: String, error: AccountValidationError)
+//                                    (implicit v: Validate[String, P]): AllErrorsOr[P] = { //implicit
+//      RefType
+//        .applyRef[String, P](str)
+//        .left
+//        .map(_ => error)
+//        .toValidatedNec
+//    }
   }
 
   object PersonValidator {
@@ -114,8 +114,13 @@ object Less9 {
       validatePersonPassportNumber(person.passportNumber)
     ).mapN(Person)
 
-    def validatePersonName(name: String): AllErrorsOr[Name] =
-      simpleTypeRefValidator[Name](name, UsernameIsInvalid)
+    def validatePersonName(name: String): AllErrorsOr[Name] = {
+      RefType
+        .applyRef[Name](name)
+        .left
+        .map(_ => UsernameIsInvalid)
+        .toValidatedNec
+    }
 
     def validatePersonBirthDay(birthDay: String): AllErrorsOr[Instant] = {
       val year18 = 567648000000L
@@ -131,8 +136,13 @@ object Less9 {
       }).toValidatedNec
     }
 
-    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[PassportNumber] =
-      simpleTypeRefValidator[PassportNumber](passportNumber, PassportNumberIsInvalid)
+    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[PassportNumber] = {
+      RefType
+        .applyRef[PassportNumber](passportNumber)
+        .left
+        .map(_ => PassportNumberIsInvalid)
+        .toValidatedNec
+    }
 
   }
 
@@ -146,8 +156,13 @@ object Less9 {
       validatePaymentCardSecurityCode(card.securityCode)
     ).mapN(PaymentCard)
 
-    def validatePaymentCardNumber(number: String): AllErrorsOr[CardNumber] =
-      simpleTypeRefValidator[CardNumber](number, CardNumberIsInvalid)
+    def validatePaymentCardNumber(number: String): AllErrorsOr[CardNumber] = {
+      RefType
+        .applyRef[CardNumber](number)
+        .left
+        .map(_ => CardNumberIsInvalid)
+        .toValidatedNec
+    }
 
     def validatePaymentCardExpirationDate(expirationDate: String): AllErrorsOr[Instant] = {
       val year3 = 94608000000L
@@ -162,8 +177,13 @@ object Less9 {
       }).toValidatedNec
     }
 
-    def validatePaymentCardSecurityCode(securityCode: String): AllErrorsOr[SecurityCode] =
-      simpleTypeRefValidator[SecurityCode](securityCode, SecurityCodeIsInvalid)
+    def validatePaymentCardSecurityCode(securityCode: String): AllErrorsOr[SecurityCode] = {
+      RefType
+        .applyRef[SecurityCode](securityCode)
+        .left
+        .map(_ => SecurityCodeIsInvalid)
+        .toValidatedNec
+    }
   }
 
   def main(args: Array[String]): Unit = {

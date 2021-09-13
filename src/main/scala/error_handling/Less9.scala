@@ -1,11 +1,11 @@
 package error_handling
 
 import cats.data.ValidatedNec
-import cats.syntax.all.*
-import eu.timepit.refined.*
+import cats.syntax.all._
+import eu.timepit.refined._
 import eu.timepit.refined.api.{RefType, Refined}
-import eu.timepit.refined.auto.*
-import eu.timepit.refined.numeric.*
+import eu.timepit.refined.auto._
+import eu.timepit.refined.numeric._
 import eu.timepit.refined.string.MatchesRegex
 
 import java.text.SimpleDateFormat
@@ -135,12 +135,12 @@ object Less9 {
       }).toValidatedNec
     }
 
-    def validatePersonBirthDay(birthDay: String): AllErrorsOr[DateStr] = {
+    def validatePersonBirthDay(birthDay: String): AllErrorsOr[Instant] = {
       val year18 = 567648000000L
       val year75 = 2365200000000L
 
       (RefType
-        .applyRef[DateStr](birthDay) match {
+        .applyRef[Instant](birthDay) match {
         case Left(_) => Left(BirthDayIsNotDate)
         case Right(value) =>
           val formatter = new SimpleDateFormat("yyyy-MM-dd")
@@ -163,7 +163,7 @@ object Less9 {
 
   object PaymentCardValidator {
     import AccountValidator.AllErrorsOr
-    import AccountValidationError.*
+    import AccountValidationError._
 
     def validatePaymentCard(card: PaymentCardDTO): AllErrorsOr[PaymentCard] = (
       validatePaymentCardNumber(card.cardNumber),

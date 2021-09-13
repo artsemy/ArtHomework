@@ -25,7 +25,7 @@ object Less10 {
     println("-" * 100)
   }
 
-  def printSimpleArr[T](url: String)(implicit encodeT: Decoder[T]): Unit = {
+  def printSimpleArr[T](url: String)(implicit decodeT: Decoder[T]): Unit = {
     val arrSource = scala.io.Source.fromURL(url)
     val arrString = arrSource.mkString
     val result: Either[Error, List[T]] = decode[List[T]](arrString)

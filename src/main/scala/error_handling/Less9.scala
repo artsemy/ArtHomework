@@ -3,7 +3,7 @@ package error_handling
 import cats.data.ValidatedNec
 import cats.syntax.all._
 import eu.timepit.refined.{refineV, W}
-import eu.timepit.refined.api.{RefType, Refined, Validate}
+import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.string.MatchesRegex
 
 import java.time.Instant
@@ -85,7 +85,7 @@ object Less9 {
     import PersonValidator.validatePerson
     type AllErrorsOr[A] = ValidatedNec[AccountValidationError, A]
 
-    def validate(person: PersonDTO, card: PaymentCardDTO): AllErrorsOr[Account] = (
+    def validateAccount(person: PersonDTO, card: PaymentCardDTO): AllErrorsOr[Account] = (
       validatePerson(person),
       validatePaymentCard(card)
     ).mapN(Account)
@@ -166,7 +166,7 @@ object Less9 {
   }
 
   def main(args: Array[String]): Unit = {
-    import AccountValidator.validate
+    import AccountValidator.validateAccount
 
     val personDTOValid      = PersonDTO("Arty", "2001-01-01", "0123456789AA22")
     val paymentCardDTOValid = PaymentCardDTO("4444444444444444", "2022-01-01", "1111")
@@ -174,8 +174,8 @@ object Less9 {
     val personDTOInvalid      = PersonDTO("ar", "2015-01-01", "qwerqwerqw2aaa")
     val paymentCardDTOInvalid = PaymentCardDTO("44444444444444445", "2025-01-01", "11111")
 
-    println(validate(personDTOValid, paymentCardDTOValid))
-    println(validate(personDTOInvalid, paymentCardDTOInvalid))
+    println(validateAccount(personDTOValid, paymentCardDTOValid))
+    println(validateAccount(personDTOInvalid, paymentCardDTOInvalid))
   }
 
 }

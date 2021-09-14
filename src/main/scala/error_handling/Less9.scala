@@ -29,6 +29,7 @@ object Less9 {
   type CardNumber   = String Refined MatchesRegex[W.`"""\\d{16}"""`.T]
   type SecurityCode = String Refined MatchesRegex[W.`"""\\d{4}"""`.T]
 
+  final case class AccountDTO(personDTO: PersonDTO, cardDTO: PaymentCardDTO)
   final case class Account(person: Person, card: PaymentCard)
 
   final case class Person(
@@ -85,9 +86,9 @@ object Less9 {
     import PersonValidator.validatePerson
     type AllErrorsOr[A] = ValidatedNec[AccountValidationError, A]
 
-    def validateAccount(person: PersonDTO, card: PaymentCardDTO): AllErrorsOr[Account] = (
-      validatePerson(person),
-      validatePaymentCard(card)
+    def validateAccount(accountDTO: AccountDTO): AllErrorsOr[Account] = (
+      validatePerson(accountDTO.personDTO),
+      validatePaymentCard(accountDTO.cardDTO)
     ).mapN(Account)
 
     def simpleRefValidation[T, P](
@@ -165,17 +166,17 @@ object Less9 {
 
   }
 
-  def main(args: Array[String]): Unit = {
-    import AccountValidator.validateAccount
-
-    val personDTOValid      = PersonDTO("Arty", "2001-01-01", "0123456789AA22")
-    val paymentCardDTOValid = PaymentCardDTO("4444444444444444", "2022-01-01", "1111")
-
-    val personDTOInvalid      = PersonDTO("ar", "2015-01-01", "qwerqwerqw2aaa")
-    val paymentCardDTOInvalid = PaymentCardDTO("44444444444444445", "2025-01-01", "11111")
-
-    println(validateAccount(personDTOValid, paymentCardDTOValid))
-    println(validateAccount(personDTOInvalid, paymentCardDTOInvalid))
-  }
+//  def main(args: Array[String]): Unit = {
+//    import AccountValidator.validateAccount
+//
+//    val personDTOValid      = PersonDTO("Arty", "2001-01-01", "0123456789AA22")
+//    val paymentCardDTOValid = PaymentCardDTO("4444444444444444", "2022-01-01", "1111")
+//
+//    val personDTOInvalid      = PersonDTO("ar", "2015-01-01", "qwerqwerqw2aaa")
+//    val paymentCardDTOInvalid = PaymentCardDTO("44444444444444445", "2025-01-01", "11111")
+//
+//    println(validateAccount(personDTOValid, paymentCardDTOValid))
+//    println(validateAccount(personDTOInvalid, paymentCardDTOInvalid))
+//  }
 
 }

@@ -248,4 +248,82 @@ class Less11 extends AnyFreeSpec {
     }
   }
 
+  "AccountValidator" - {
+    "valid account: true" in {
+      val validPerson  = PersonDTO("Arty", "2000-01-01", "0123456789AA22")
+      val validCard    = PaymentCardDTO("1111222233334444", "2022-01-01", "4444")
+      val validAccount = AccountDTO(validPerson, validCard)
+      val exp          = validAccount.validNec
+      val act = for {
+        accRef        <- validateAccount(validAccount)
+        personNameVal  = accRef.person.name.value
+        personBirthVal = accRef.person.birthDay.toString.take(10)
+        personPassNVal = accRef.person.passportNumber.value
+        cardNumVal     = accRef.card.cardNumber.value
+        cardExpVal     = accRef.card.expirationDate.toString.take(10)
+        cardSecCVal    = accRef.card.securityCode.value
+      } yield AccountDTO(
+        PersonDTO(personNameVal, personBirthVal, personPassNVal),
+        PaymentCardDTO(cardNumVal, cardExpVal, cardSecCVal)
+      )
+      assert(act == exp)
+    }
+    "invalid account: name length + date type" in {
+      val validPerson  = PersonDTO("Ar", "2000.01.01", "0123456789AAA2")
+      val validCard    = PaymentCardDTO("11112222333344445", "2022.01.01", "44445")
+      val validAccount = AccountDTO(validPerson, validCard)
+      val exp = Invalid(
+        Chain(
+          UsernameIsInvalid,
+          BirthDayIsNotDate,
+          PassportNumberIsInvalid,
+          CardNumberIsInvalid,
+          ExpirationDateIsNotDate,
+          SecurityCodeIsInvalid
+        )
+      )
+      val act = for {
+        accRef        <- validateAccount(validAccount)
+        personNameVal  = accRef.person.name.value
+        personBirthVal = accRef.person.birthDay.toString.take(10)
+        personPassNVal = accRef.person.passportNumber.value
+        cardNumVal     = accRef.card.cardNumber.value
+        cardExpVal     = accRef.card.expirationDate.toString.take(10)
+        cardSecCVal    = accRef.card.securityCode.value
+      } yield AccountDTO(
+        PersonDTO(personNameVal, personBirthVal, personPassNVal),
+        PaymentCardDTO(cardNumVal, cardExpVal, cardSecCVal)
+      )
+      assert(act == exp)
+    }
+    "invalid account: name first letter + date bound" in {
+      val validPerson  = PersonDTO("arty", "2010-01-01", "0123456789AAA2")
+      val validCard    = PaymentCardDTO("11112222333344445", "2020-01-01", "44445")
+      val validAccount = AccountDTO(validPerson, validCard)
+      val exp = Invalid(
+        Chain(
+          UsernameIsInvalid,
+          BirthDayIsOutOfBounds,
+          PassportNumberIsInvalid,
+          CardNumberIsInvalid,
+          ExpirationDateIsOutOfBounds,
+          SecurityCodeIsInvalid
+        )
+      )
+      val act = for {
+        accRef        <- validateAccount(validAccount)
+        personNameVal  = accRef.person.name.value
+        personBirthVal = accRef.person.birthDay.toString.take(10)
+        personPassNVal = accRef.person.passportNumber.value
+        cardNumVal     = accRef.card.cardNumber.value
+        cardExpVal     = accRef.card.expirationDate.toString.take(10)
+        cardSecCVal    = accRef.card.securityCode.value
+      } yield AccountDTO(
+        PersonDTO(personNameVal, personBirthVal, personPassNVal),
+        PaymentCardDTO(cardNumVal, cardExpVal, cardSecCVal)
+      )
+      assert(act == exp)
+    }
+  }
+
 }

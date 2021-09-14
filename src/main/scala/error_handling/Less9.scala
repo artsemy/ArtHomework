@@ -2,13 +2,9 @@ package error_handling
 
 import cats.data.ValidatedNec
 import cats.syntax.all._
-import eu.timepit.refined._
-import eu.timepit.refined.api._
-import eu.timepit.refined.auto._
-import eu.timepit.refined.numeric._
+import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.api.{RefType, Refined, Validate}
 import eu.timepit.refined.string.MatchesRegex
-import eu.timepit.refined.api.Refined
-
 
 import java.time.Instant
 import scala.util.Try
@@ -94,14 +90,16 @@ object Less9 {
       validatePaymentCard(card)
     ).mapN(Account)
 
-//    def simpleTypeRefValidator[P](str: String, error: AccountValidationError)
-//                                    (implicit v: Validate[String, P]): AllErrorsOr[P] = { //implicit
-//      RefType
-//        .applyRef[String, P](str)
-//        .left
-//        .map(_ => error)
-//        .toValidatedNec
-//    }
+    def simpleRefValidation[T, P](
+      parameter: T,
+      error:     AccountValidationError
+    )(
+      implicit v: Validate[T, P]
+    ): AllErrorsOr[Refined[T, P]] = {
+      refineV(parameter).left
+        .map(_ => error)
+        .toValidatedNec
+    }
   }
 
   object PersonValidator {
@@ -114,13 +112,8 @@ object Less9 {
       validatePersonPassportNumber(person.passportNumber)
     ).mapN(Person)
 
-    def validatePersonName(name: String): AllErrorsOr[Name] = {
-      RefType
-        .applyRef[Name](name)
-        .left
-        .map(_ => UsernameIsInvalid)
-        .toValidatedNec
-    }
+    def validatePersonName(name: String): AllErrorsOr[Name] =
+      simpleRefValidation(name, UsernameIsInvalid)
 
     def validatePersonBirthDay(birthDay: String): AllErrorsOr[Instant] = {
       val year18 = 567648000000L
@@ -136,13 +129,8 @@ object Less9 {
       }).toValidatedNec
     }
 
-    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[PassportNumber] = {
-      RefType
-        .applyRef[PassportNumber](passportNumber)
-        .left
-        .map(_ => PassportNumberIsInvalid)
-        .toValidatedNec
-    }
+    def validatePersonPassportNumber(passportNumber: String): AllErrorsOr[PassportNumber] =
+      simpleRefValidation(passportNumber, PassportNumberIsInvalid)
 
   }
 
@@ -156,18 +144,13 @@ object Less9 {
       validatePaymentCardSecurityCode(card.securityCode)
     ).mapN(PaymentCard)
 
-    def validatePaymentCardNumber(number: String): AllErrorsOr[CardNumber] = {
-      RefType
-        .applyRef[CardNumber](number)
-        .left
-        .map(_ => CardNumberIsInvalid)
-        .toValidatedNec
-    }
+    def validatePaymentCardNumber(number: String): AllErrorsOr[CardNumber] =
+      simpleRefValidation(number, CardNumberIsInvalid)
 
     def validatePaymentCardExpirationDate(expirationDate: String): AllErrorsOr[Instant] = {
       val year3 = 94608000000L
 
-      (Try(Instant.parse(expirationDate.concat("T00:00:00.00Z"))).toOption match {
+      (Try(Instant.parse(expirationDate.concat("T00:00:00Z"))).toOption match {
         case None => Left(ExpirationDateIsNotDate)
         case Some(value) =>
           val eD = value.toEpochMilli
@@ -177,13 +160,9 @@ object Less9 {
       }).toValidatedNec
     }
 
-    def validatePaymentCardSecurityCode(securityCode: String): AllErrorsOr[SecurityCode] = {
-      RefType
-        .applyRef[SecurityCode](securityCode)
-        .left
-        .map(_ => SecurityCodeIsInvalid)
-        .toValidatedNec
-    }
+    def validatePaymentCardSecurityCode(securityCode: String): AllErrorsOr[SecurityCode] =
+      simpleRefValidation(securityCode, SecurityCodeIsInvalid)
+
   }
 
   def main(args: Array[String]): Unit = {

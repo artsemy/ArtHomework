@@ -155,7 +155,7 @@ object Less9 {
         case Some(value) =>
           val eD = value.toEpochMilli
           val cD = Instant.now().toEpochMilli
-          if (eD - cD < year3) Right(value)
+          if (eD > cD && eD - cD < year3) Right(value)
           else Left(ExpirationDateIsOutOfBounds)
       }).toValidatedNec
     }

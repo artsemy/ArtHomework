@@ -48,7 +48,13 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
     }
   }
 
-  override def update(employee: Employee): F[Either[EmployeeValidationError, Boolean]] = {
+  override def update(
+    birthday:  String,
+    firstName: String,
+    lastName:  String,
+    salary:    String,
+    position:  String
+  ): F[Either[EmployeeValidationError, Boolean]] = {
     EmployeeValidator
       .validate(
         employee.birthday.toString,
@@ -73,4 +79,5 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
   override def delete(id: UUID): F[Boolean] = {
     empList.modify(list => list.filterNot(e => e.employeeId.value == id) -> list.forall(e => e.employeeId.value != id))
   }
+
 }

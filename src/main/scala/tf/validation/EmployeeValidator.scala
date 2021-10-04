@@ -32,20 +32,24 @@ object EmployeeValidator {
   }
 
   def validate(
-    employeeId: String = UUID.randomUUID().toString,
+    employeeId: String = UUID.randomUUID().toString, //fix id
     birthday:   String,
     firstName:  String,
     lastname:   String,
     salary:     String,
     position:   String
   ): Either[EmployeeValidationError, Employee] = for {
-    id <- Either.cond(UUID.fromString(employeeId).isInstanceOf[UUID], UUID.fromString(employeeId), EmployeeIdFormat)
+    id <- validateId(employeeId)
     bd <- Either.cond(Instant.parse(birthday).isInstanceOf[Instant], Instant.parse(birthday), EmployeeBirthdayFormat)
     fn <- Either.cond(firstName.matches("[A-Z][a-z]+"), firstName, EmployeeFirstNameFormat)
     ln <- Either.cond(lastname.matches("[A-Z][a-z]+"), lastname, EmployeeLastNameFormat)
     sl <- validateMoney(salary)
     ps <- validatePosition(position)
-  } yield Employee(EmployeeId(id), bd, fn, ln, sl, ps) //fix id
+  } yield Employee(EmployeeId(id), bd, fn, ln, sl, ps)
+
+  def validateId(id: String): Either[EmployeeValidationError, UUID] = {
+    Either.cond(UUID.fromString(id).isInstanceOf[UUID], UUID.fromString(id), EmployeeIdFormat)
+  }
 
   def validateMoney(money: String): Either[EmployeeValidationError, Money] = {
     val currencyS = money.replaceAll("[0-9]+.[0-9]+", "")

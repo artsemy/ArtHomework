@@ -2,12 +2,8 @@ package tf.routers
 
 import cats.Monad
 import cats.data.{Kleisli, OptionT}
-import cats.syntax.all.*
-import tf.domain.employee.Employee
+import cats.syntax.all._
 import tf.services.EmployeeService
-import tf.validation.EmployeeValidator
-
-import java.util.UUID
 
 object EmployeeRouter {
 
@@ -27,12 +23,28 @@ object EmployeeRouter {
             result <- employeeService.create(birthday, firstName, lastName, salary, position)
           } yield result.toString
         }
-      case "update" :: employeeId :: birthday :: firstName :: lastName :: salary :: position :: _ =>
-      OptionT.liftF {
-        for {
-        validEmployee <- EmployeeValidator.validate(birthday, firstName, lastName, salary, position)
 
+      case "update" :: employeeId :: birthday :: firstName :: lastName :: salary :: position :: _ =>
+        OptionT.liftF {
+          for {
+            result <- employeeService.update(employeeId, birthday, firstName, lastName, salary, position)
+          } yield result.toString
         }
-      }
+
+      case "find" :: employeeId :: _ =>
+        OptionT.liftF {
+          for {
+            result <- employeeService.find(employeeId)
+          } yield result.toString
+        }
+
+      case "delete" :: employeeId :: _ =>
+        OptionT.liftF {
+          for {
+            result <- employeeService.delete(employeeId)
+          } yield result.toString
+        }
+
+      case _ => OptionT.none
     }
 }

@@ -1,11 +1,12 @@
 package tf.validation
 
-import tf.domain.employee.{Employee, EmployeeId}
+import eu.timepit.refined.refineV
+import tf.domain.employee.*
 import tf.domain.money.Money
 import tf.domain.workingPosition.WorkingPosition
 import tf.domain.workingPosition.WorkingPosition.{Junior, Middle, Senior}
-import tf.validation.EmployeeValidator.EmployeePersonValidation._
-import tf.validation.EmployeeValidator.EmployeeWorkValidation._
+import tf.validation.EmployeeValidator.EmployeePersonValidation.*
+import tf.validation.EmployeeValidator.EmployeeWorkValidation.*
 
 import java.time.Instant
 import java.util.{Currency, UUID}
@@ -31,28 +32,39 @@ object EmployeeValidator {
     final case object EmployeeIdFormat extends EmployeeWorkValidation
   }
 
-  def validate(
-    employeeId: String = UUID.randomUUID().toString, //fix id
-    birthday:   String,
-    firstName:  String,
-    lastname:   String,
-    salary:     String,
-    position:   String
-  ): Either[EmployeeValidationError, Employee] = for {
-    id <- validateId(employeeId)
-    bd <- Either.cond(Instant.parse(birthday).isInstanceOf[Instant], Instant.parse(birthday), EmployeeBirthdayFormat)
-    fn <- Either.cond(firstName.matches("[A-Z][a-z]+"), firstName, EmployeeFirstNameFormat)
-    ln <- Either.cond(lastname.matches("[A-Z][a-z]+"), lastname, EmployeeLastNameFormat)
-    sl <- validateMoney(salary)
-    ps <- validatePosition(position)
-  } yield Employee(EmployeeId(id), bd, fn, ln, sl, ps)
+  def validate(employeeDTO: EmployeeDTO): Either[EmployeeValidationError, Employee] = for {
+    id <- validateId(employeeDTO.employeeId)
+    bd <- validateBirthDay(employeeDTO.birthday)
+    fn <- validateFirstName(employeeDTO.firstName)
+    ln <- validateLastName(employeeDTO.lastName)
+    sl <- validateMoney(employeeDTO.salary)
+    ps <- validatePosition(employeeDTO.position)
+  } yield Employee(id, bd, fn, ln, sl, ps)
 
-  def validateId(id: String): Either[EmployeeValidationError, UUID] = {
-    Either.cond(UUID.fromString(id).isInstanceOf[UUID], UUID.fromString(id), EmployeeIdFormat)
+  def validateId(id: String): Either[EmployeeValidationError, EmployeeId] = {
+    Either.cond(UUID.fromString(id).isInstanceOf[UUID], EmployeeId(UUID.fromString(id)), EmployeeIdFormat)
+  }
+
+  def validateBirthDay(birthday: String): Either[EmployeeValidationError, Instant] = {
+    Either.cond(
+      Instant.parse(birthday).isInstanceOf[Instant],
+      Instant.parse(birthday),
+      EmployeeBirthdayFormat
+    )
+  }
+
+  def validateFirstName(firstName: String): Either[EmployeeValidationError, FirstName] = {
+    val res: Either[String, FirstName] = refineV(firstName)
+    res.left.map(_ => EmployeeFirstNameFormat)
+  }
+
+  def validateLastName(lastName: String): Either[EmployeeValidationError, LastName] = {
+    val res: Either[String, FirstName] = refineV(lastName)
+    res.left.map(_ => EmployeeLastNameFormat)
   }
 
   def validateMoney(money: String): Either[EmployeeValidationError, Money] = {
-    val currencyS = money.replaceAll("[0-9]+.[0-9]+", "")
+    val currencyS = money.replaceAll("[0-9]+.[0-9]{0,2}", "")
     val amountS   = money.replace(currencyS, "")
     for {
       amount <- Either.cond(

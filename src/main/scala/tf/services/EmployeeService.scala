@@ -2,31 +2,18 @@ package tf.services
 
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
-import cats.implicits._
-import tf.domain.employee.Employee
+import cats.implicits.*
+import tf.domain.employee.{Employee, EmployeeDTO}
 import tf.validation.EmployeeValidator
-import tf.validation.EmployeeValidator._
+import tf.validation.EmployeeValidator.*
 
 trait EmployeeService[F[_]] {
 
   def all: F[List[Employee]]
 
-  def create(
-    birthday:  String,
-    firstName: String,
-    lastName:  String,
-    salary:    String,
-    position:  String
-  ): F[Either[EmployeeValidationError, Employee]]
+  def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Employee]]
 
-  def update(
-    id:        String,
-    birthday:  String,
-    firstName: String,
-    lastName:  String,
-    salary:    String,
-    position:  String
-  ): F[Either[EmployeeValidationError, Boolean]]
+  def update(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Boolean]]
 
   def find(id: String): F[Option[Employee]]
 
@@ -43,15 +30,9 @@ object EmployeeService {
 final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Employee]]) extends EmployeeService[F] {
   override def all: F[List[Employee]] = empList.get
 
-  override def create(
-    birthday:  String,
-    firstName: String,
-    lastName:  String,
-    salary:    String,
-    position:  String
-  ): F[Either[EmployeeValidationError, Employee]] = {
+  override def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Employee]] = {
     EmployeeValidator
-      .validate(birthday = birthday, firstName = firstName, lastname = lastName, salary = salary, position = position)
+      .validate(employeeDTO)
       .traverse { case e @ Employee(_, _, _, _, _, _) =>
         for {
           _ <- empList.update(e :: _)
@@ -59,16 +40,9 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
       }
   }
 
-  override def update(
-    id:        String,
-    birthday:  String,
-    firstName: String,
-    lastName:  String,
-    salary:    String,
-    position:  String
-  ): F[Either[EmployeeValidationError, Boolean]] = {
+  override def update(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Boolean]] = {
     EmployeeValidator
-      .validate(id, birthday, firstName, lastName, salary, position)
+      .validate(employeeDTO)
       .traverse { employeeUpdate =>
         empList.modify { list =>
           if (!list.forall(e => e.employeeId != employeeUpdate.employeeId))

@@ -7,6 +7,8 @@ import tf.domain.employee.{Employee, EmployeeDTO}
 import tf.validation.EmployeeValidator
 import tf.validation.EmployeeValidator.*
 
+import java.util.UUID
+
 trait EmployeeService[F[_]] {
 
   def all: F[List[Employee]]
@@ -31,8 +33,9 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
   override def all: F[List[Employee]] = empList.get
 
   override def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Employee]] = {
+    val empWithId = employeeDTO.copy(employeeId = UUID.randomUUID().toString)
     EmployeeValidator
-      .validate(employeeDTO)
+      .validate(empWithId)
       .traverse { case e @ Employee(_, _, _, _, _, _) =>
         for {
           _ <- empList.update(e :: _)
@@ -54,7 +57,7 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
 
   override def find(idS: String): F[Option[Employee]] = {
     val res = validateId(idS).traverse { id =>
-      empList.get.map(x => x.find(e => e.employeeId.value == id))
+      empList.get.map(x => x.find(e => e.employeeId.value == id.value))
     }
     res.map(x => x.getOrElse(None))
   }
@@ -62,7 +65,7 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
   override def delete(idS: String): F[Boolean] = {
     val res = validateId(idS).traverse { id =>
       empList.modify(list =>
-        list.filterNot(e => e.employeeId.value == id) -> list.forall(e => e.employeeId.value == id) //fix
+        list.filterNot(e => e.employeeId.value == id.value) -> list.exists(e => e.employeeId == id)
       )
     }
     res.map(x => x.getOrElse(false))

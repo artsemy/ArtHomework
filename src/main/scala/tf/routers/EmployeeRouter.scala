@@ -2,7 +2,8 @@ package tf.routers
 
 import cats.Monad
 import cats.data.{Kleisli, OptionT}
-import cats.syntax.all._
+import cats.syntax.all.*
+import tf.domain.employee.EmployeeDTO
 import tf.services.EmployeeService
 
 object EmployeeRouter {
@@ -18,16 +19,17 @@ object EmployeeRouter {
 
       case "create" :: birthday :: firstName :: lastName :: salary :: position :: _ =>
         OptionT.liftF {
+          val empDto = EmployeeDTO("", birthday, firstName, lastName, salary, position)
           for {
-//        employeeId <- UUID.randomUUID() // fix
-            result <- employeeService.create(birthday, firstName, lastName, salary, position)
+            result <- employeeService.create(empDto)
           } yield result.toString
         }
 
       case "update" :: employeeId :: birthday :: firstName :: lastName :: salary :: position :: _ =>
         OptionT.liftF {
+          val empDto = EmployeeDTO(employeeId, birthday, firstName, lastName, salary, position)
           for {
-            result <- employeeService.update(employeeId, birthday, firstName, lastName, salary, position)
+            result <- employeeService.update(empDto)
           } yield result.toString
         }
 

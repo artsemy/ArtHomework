@@ -5,8 +5,7 @@ import tf.domain.employee.*
 import tf.domain.money.Money
 import tf.domain.workingPosition.WorkingPosition
 import tf.domain.workingPosition.WorkingPosition.{Junior, Middle, Senior}
-import tf.validation.EmployeeValidator.EmployeePersonValidation.*
-import tf.validation.EmployeeValidator.EmployeeWorkValidation.*
+import tf.validation.EmployeeValidator.EmployeeValidationError._
 
 import java.time.Instant
 import java.util.{Currency, UUID}
@@ -15,21 +14,14 @@ object EmployeeValidator {
 
   trait EmployeeValidationError extends Throwable
 
-  trait EmployeePersonValidation extends EmployeeValidationError
-
-  object EmployeePersonValidation {
-    final case object EmployeeBirthdayFormat extends EmployeePersonValidation
-    final case object EmployeeFirstNameFormat extends EmployeePersonValidation
-    final case object EmployeeLastNameFormat extends EmployeePersonValidation
-  }
-
-  trait EmployeeWorkValidation extends EmployeeValidationError
-
-  object EmployeeWorkValidation {
-    final case object SalaryAmountFormat extends EmployeeWorkValidation
-    final case object SalaryCurrencyFormat extends EmployeeWorkValidation
-    final case object EmployeePositionFormat extends EmployeeWorkValidation
-    final case object EmployeeIdFormat extends EmployeeWorkValidation
+  object EmployeeValidationError {
+    final case object EmployeeBirthdayFormat extends EmployeeValidationError
+    final case object EmployeeFirstNameFormat extends EmployeeValidationError
+    final case object EmployeeLastNameFormat extends EmployeeValidationError
+    final case object SalaryAmountFormat extends EmployeeValidationError
+    final case object SalaryCurrencyFormat extends EmployeeValidationError
+    final case object EmployeePositionFormat extends EmployeeValidationError
+    final case object EmployeeIdFormat extends EmployeeValidationError
   }
 
   def validate(employeeDTO: EmployeeDTO): Either[EmployeeValidationError, Employee] = for {
@@ -80,7 +72,7 @@ object EmployeeValidator {
     } yield Money(amount, currency)
   }
 
-  def validatePosition(position: String): Either[EmployeeWorkValidation, WorkingPosition] = {
+  def validatePosition(position: String): Either[EmployeeValidationError, WorkingPosition] = {
     position match {
       case JUNIOR => Right(Junior)
       case MIDDLE => Right(Middle)

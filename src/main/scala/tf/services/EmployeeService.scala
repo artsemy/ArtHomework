@@ -2,10 +2,10 @@ package tf.services
 
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
-import cats.implicits.*
+import cats.implicits._
 import tf.domain.employee.{Employee, EmployeeDTO}
 import tf.validation.EmployeeValidator
-import tf.validation.EmployeeValidator.*
+import tf.validation.EmployeeValidator._
 
 import java.util.UUID
 

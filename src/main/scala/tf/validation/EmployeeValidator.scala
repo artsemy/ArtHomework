@@ -1,7 +1,7 @@
 package tf.validation
 
 import eu.timepit.refined.refineV
-import tf.domain.employee.*
+import tf.domain.employee._
 import tf.domain.money.Money
 import tf.domain.workingPosition.WorkingPosition
 import tf.domain.workingPosition.WorkingPosition.{Junior, Middle, Senior}

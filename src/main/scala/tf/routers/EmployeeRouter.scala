@@ -2,7 +2,7 @@ package tf.routers
 
 import cats.Monad
 import cats.data.{Kleisli, OptionT}
-import cats.syntax.all.*
+import cats.syntax.all._
 import tf.domain.employee.EmployeeDTO
 import tf.services.EmployeeService
 

@@ -31,9 +31,11 @@ object Less17 {}
 object GuessServer extends IOApp {
 
   private val number: AtomicInteger = new AtomicInteger(0)
-  final val LOWER   = "lover"
-  final val GREATER = "greater"
-  final val EQUAL   = "equal"
+  private val attemptNumber = new AtomicInteger(0)
+  final val LOWER           = "lover"
+  final val GREATER         = "greater"
+  final val EQUAL           = "equal"
+  final val NO_ATTEMPTS     = "no attempts left"
 
   override def run(args: List[String]): IO[ExitCode] = {
     BlazeServerBuilder[IO](ExecutionContext.global)
@@ -45,27 +47,34 @@ object GuessServer extends IOApp {
       .as(ExitCode.Success)
   }
 
-  def parseAndGenerate(minValue: String, maxValue: String): Option[Int] = for {
-    parsedMin   <- minValue.toIntOption
-    parsedMax   <- maxValue.toIntOption
-    randomNumber = Random.nextInt(parsedMax - parsedMin) + parsedMin + 1
-    _            = number.set(randomNumber)
+  def parseAndGenerate(minValue: String, maxValue: String, attemptNum: String): Option[Int] = for {
+    parsedMin     <- minValue.toIntOption
+    parsedMax     <- maxValue.toIntOption
+    parsedAttempt <- attemptNum.toIntOption
+    randomNumber   = Random.nextInt(parsedMax - parsedMin) + parsedMin + 1
+    _              = number.set(randomNumber)
+    _              = attemptNumber.set(parsedAttempt)
   } yield randomNumber
 
   def parseAndCompare(guessValue: String): Option[String] = for {
     guessNumber <- guessValue.toIntOption
     num          = number.get()
-    answer =
-      if (guessNumber > num) LOWER
-      else if (guessNumber < num) GREATER
-      else EQUAL
+    attempt      = attemptNumber.get()
+    answer = attempt match {
+      case 0 => NO_ATTEMPTS
+      case _ =>
+        attemptNumber.set(attempt - 1)
+        if (guessNumber > num) LOWER
+        else if (guessNumber < num) GREATER
+        else EQUAL
+    }
   } yield answer
 
   private val gameRouters = HttpRoutes.of[IO] {
 
-    // curl "localhost:9001/game/start/1/5"
-    case GET -> Root / "game" / "start" / minValue / maxValue =>
-      parseAndGenerate(minValue, maxValue) match {
+    // curl "localhost:9001/game/start/1/5/3"
+    case GET -> Root / "game" / "start" / minValue / maxValue / attemptNum =>
+      parseAndGenerate(minValue, maxValue, attemptNum) match {
         case Some(value) => Ok(s"game started $value")
         case None        => BadRequest("invalid max or min values")
       }
@@ -96,21 +105,23 @@ object GuessClient extends IOApp {
     _        <- printLine(s"$middle")
     response <- client.expect[String](uri / "game" / "guess" / middle.toString)
     res <- response match {
-      case LOWER   => findNumber(client, min, middle)
-      case GREATER => findNumber(client, middle, max)
-      case EQUAL   => s"win $middle".pure[IO]
+      case LOWER        => findNumber(client, min, middle)
+      case GREATER      => findNumber(client, middle, max)
+      case EQUAL        => s"win $middle".pure[IO]
+      case errorMessage => errorMessage.pure[IO]
     }
     _ <- Thread.sleep(1000).pure[IO]
   } yield res
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val min = 0
-    val max = 10
+    val min           = 0
+    val max           = 100
+    val attemptNumber = 5
     BlazeClientBuilder[IO](ExecutionContext.global).resource
       .parZip(Blocker[IO])
       .use { case (client, _) =>
         for {
-          test <- client.expect[String](uri / "game" / "start" / min.toString / max.toString)
+          test <- client.expect[String](uri / "game" / "start" / min.toString / max.toString / attemptNumber.toString)
           _    <- printLine(test) //testing
           res  <- findNumber(client, min, max)
           _    <- printLine(res)

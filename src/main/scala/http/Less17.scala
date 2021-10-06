@@ -1,12 +1,14 @@
 package http
 
 import cats.effect.{Blocker, ExitCode, IO, IOApp}
-import cats.implicits._
-import org.http4s._
+import cats.implicits.*
+import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
-import org.http4s.dsl.io._
-import org.http4s.implicits._
+import org.http4s.dsl.io.*
+import org.http4s.implicits.*
 import org.http4s.server.blaze.BlazeServerBuilder
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,6 +39,8 @@ object GuessServer extends IOApp {
   final val EQUAL           = "equal"
   final val NO_ATTEMPTS     = "no attempts left"
 
+  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+
   override def run(args: List[String]): IO[ExitCode] = {
     BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = 9001, host = "localhost")
@@ -59,15 +63,14 @@ object GuessServer extends IOApp {
   def parseAndCompare(guessValue: String): Option[String] = for {
     guessNumber <- guessValue.toIntOption
     num          = number.get()
-    attempt      = attemptNumber.get()
-    answer = attempt match {
-      case 0 => NO_ATTEMPTS
-      case _ =>
-        attemptNumber.set(attempt - 1)
-        if (guessNumber > num) LOWER
-        else if (guessNumber < num) GREATER
-        else EQUAL
-    }
+    attempt      = attemptNumber.getAndUpdate(x => x - 1)
+    compareRes =
+      if (guessNumber > num) LOWER
+      else if (guessNumber < num) GREATER
+      else EQUAL
+    answer =
+      if (attempt == 1 && compareRes != EQUAL) NO_ATTEMPTS
+      else compareRes
   } yield answer
 
   private val gameRouters = HttpRoutes.of[IO] {
@@ -75,8 +78,10 @@ object GuessServer extends IOApp {
     // curl "localhost:9001/game/start/1/5/3"
     case GET -> Root / "game" / "start" / minValue / maxValue / attemptNum =>
       parseAndGenerate(minValue, maxValue, attemptNum) match {
-        case Some(value) => Ok(s"game started $value")
-        case None        => BadRequest("invalid max or min values")
+        case Some(value) =>
+          logger.info(s"generated: $value")
+          Ok(s"game started")
+        case None => BadRequest("invalid max, min or attempt values")
       }
     // curl "localhost:9001/game/guess/2"
     case GET -> Root / "game" / "guess" / guessValue =>
@@ -110,7 +115,6 @@ object GuessClient extends IOApp {
       case EQUAL        => s"win $middle".pure[IO]
       case errorMessage => errorMessage.pure[IO]
     }
-    _ <- Thread.sleep(1000).pure[IO]
   } yield res
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -121,10 +125,9 @@ object GuessClient extends IOApp {
       .parZip(Blocker[IO])
       .use { case (client, _) =>
         for {
-          test <- client.expect[String](uri / "game" / "start" / min.toString / max.toString / attemptNumber.toString)
-          _    <- printLine(test) //testing
-          res  <- findNumber(client, min, max)
-          _    <- printLine(res)
+          _   <- client.expect[String](uri / "game" / "start" / min.toString / max.toString / attemptNumber.toString)
+          res <- findNumber(client, min, max)
+          _   <- printLine(res)
         } yield ()
       }
       .as(ExitCode.Success)

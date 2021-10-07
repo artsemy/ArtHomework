@@ -1,16 +1,21 @@
 package http
 
-import cats.effect.{Blocker, ExitCode, IO, IOApp}
-import cats.implicits.*
+import cats.data.Validated
+import http.Game.{Guess, GuessDTO, InitParams}
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.all.*
+import doobie.`enum`.JdbcType.Integer
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
+import org.http4s.client.dsl.io.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.blaze.BlazeServerBuilder
 
+import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.util.Random
@@ -29,6 +34,12 @@ object Less17 {}
 //    the client, whether the current number is lower, greater or equal to the guessed one.
 // 4. The game ends when the number is guessed or there are no more attempts left. At this point the client
 //    should terminate, while the server may continue running forever.
+
+object Game {
+  final case class InitParams(min: String, max: String, attempts: String)
+  final case class GuessDTO(guessValue: String)
+  final case class Guess(guessValue: Int)
+}
 
 object GuessServer extends IOApp {
 
@@ -73,22 +84,44 @@ object GuessServer extends IOApp {
       else compareRes
   } yield answer
 
-  private val gameRouters = HttpRoutes.of[IO] {
+  private val gameRouters = {
+    import io.circe.generic.auto._
+    import org.http4s.circe.CirceEntityCodec._
 
-    // curl "localhost:9001/game/start/1/5/3"
-    case GET -> Root / "game" / "start" / minValue / maxValue / attemptNum =>
-      parseAndGenerate(minValue, maxValue, attemptNum) match {
-        case Some(value) =>
-          logger.info(s"generated: $value")
-          Ok(s"game started")
-        case None => BadRequest("invalid max, min or attempt values")
-      }
-    // curl "localhost:9001/game/guess/2"
-    case GET -> Root / "game" / "guess" / guessValue =>
-      parseAndCompare(guessValue) match {
-        case Some(value) => Ok(value)
-        case None        => BadRequest("invalid guess value")
-      }
+    implicit val localGuessDecoder: QueryParamDecoder[Guess] = { guessValue =>
+      Validated
+        .catchNonFatal(Guess(guessValue.value.toInt))
+        .leftMap(t => ParseFailure(s"Failed parsing ${guessValue.value} to Int", t.getMessage))
+        .toValidatedNel
+    }
+    object GuessMatcher extends QueryParamDecoderMatcher[Guess](name = "guessValue")
+
+    HttpRoutes.of[IO] {
+//      // curl "localhost:9001/game/start/1/5/3"
+//      case GET -> Root / "game" / "start" / minValue / maxValue / attemptNum =>
+//        parseAndGenerate(minValue, maxValue, attemptNum) match {
+//          case Some(value) =>
+//            logger.info(s"generated: $value")
+//            Ok(s"game started")
+//          case None => BadRequest("invalid max, min or attempt values")
+//        }
+//      // curl "localhost:9001/game/guess/2"
+//      case GET -> Root / "game" / "guess" / guessValue =>
+//        parseAndCompare(guessValue) match {
+//          case Some(value) => Ok(value)
+//          case None        => BadRequest("invalid guess value")
+//        }
+
+      // curl -XPOST "localhost:9001/game/start" -d '{"min": "1", "max": "10", "attempts": "5"}' -H "Content-Type: application/json"
+      case req @ POST -> Root / "game" / "start" =>
+        req.as[InitParams].flatMap { params =>
+          Ok(s"game started: min - ${params.min}, max - ${params.max}, attempts - ${params.attempts}")
+        }
+
+      // curl -XPOST "localhost:9001/game/guess?guessValue=3"
+      case POST -> Root / "game" / "guess" :? GuessMatcher(guessValue) =>
+        Ok(attemptNumber.get())
+    }
 
   }
 
@@ -105,10 +138,17 @@ object GuessClient extends IOApp {
   private def printLine(string: String = ""): IO[Unit] = IO(println(string))
 
   private def findNumber(client: Client[IO], min: Int, max: Int): IO[String] = for {
-    _        <- printLine("attempt")
-    middle    = (max - min) / 2 + min
-    _        <- printLine(s"$middle")
-    response <- client.expect[String](uri / "game" / "guess" / middle.toString)
+    _     <- printLine("attempt")
+    middle = (max - min) / 2 + min
+    _     <- printLine(s"$middle")
+    response <- {
+      implicit val Encoder: EntityEncoder[IO, GuessDTO] =
+        EntityEncoder.stringEncoder[IO].contramap { guess: GuessDTO =>
+          s"(${guess.guessValue})"
+        }
+      client.expect[String](Method.POST(GuessDTO(middle.toString), uri / "game" / "guess"))
+    }
+//    response <- client.expect[String](uri / "game" / "guess" / middle.toString)
     res <- response match {
       case LOWER        => findNumber(client, min, middle)
       case GREATER      => findNumber(client, middle, max)
@@ -121,11 +161,17 @@ object GuessClient extends IOApp {
     val min           = 0
     val max           = 100
     val attemptNumber = 5
+
     BlazeClientBuilder[IO](ExecutionContext.global).resource
-      .parZip(Blocker[IO])
-      .use { case (client, _) =>
+      .use { client =>
         for {
-          _   <- client.expect[String](uri / "game" / "start" / min.toString / max.toString / attemptNumber.toString)
+          res <- {
+            import io.circe.generic.auto._
+            import org.http4s.circe.CirceEntityCodec._
+            client.expect[String](
+              Method.POST(InitParams(min.toString, max.toString, attemptNumber.toString), uri / "game" / "start")
+            )
+          }
           res <- findNumber(client, min, max)
           _   <- printLine(res)
         } yield ()

@@ -3,6 +3,7 @@ package tf.domain
 import eu.timepit.refined.W
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.MatchesRegex
+import io.circe.generic.JsonCodec
 import money.Money
 import workingPosition.WorkingPosition
 
@@ -22,6 +23,7 @@ object employee {
     position:   WorkingPosition
   )
 
+  @JsonCodec
   final case class EmployeeDTO(
     employeeId: String,
     birthday:   String,

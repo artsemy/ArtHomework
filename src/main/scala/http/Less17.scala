@@ -13,6 +13,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.circe.CirceEntityCodec._
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
@@ -135,7 +136,7 @@ object GuessClient extends IOApp {
     middle = (max - min) / 2 + min
     _     <- printLine(s"$middle")
     response <- {
-      import org.http4s.circe.CirceEntityCodec._ //works incorrect without this line, why???
+
       client.expect[String](Method.POST((uri / "game" / "guess").withQueryParam("guessValue", middle.toString)))
     }
     res <-

@@ -17,6 +17,7 @@ object EmployeeRouter {
           } yield all.toString()
         }
 
+      // create 2020-10-10T12:12:00Z Arty Arty 100.00USD junior
       case "create" :: birthday :: firstName :: lastName :: salary :: position :: _ =>
         OptionT.liftF {
           val empDto = EmployeeDTO("", birthday, firstName, lastName, salary, position)

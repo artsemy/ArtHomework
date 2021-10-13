@@ -72,8 +72,7 @@ libraryDependencies ++= Seq(
   "io.circe"                 %% "circe-generic"                 % circeVersion,
   "io.circe"                 %% "circe-generic-extras"          % circeVersion,
   "io.circe"                 %% "circe-optics"                  % circeVersion,
-  "io.circe"                 %% "circe-parser"                  % circeVersion,
-  "org.tpolecat" %% "doobie-refined" % "0.13.1"
+  "io.circe"                 %% "circe-parser"                  % circeVersion
 )
 
 addCompilerPlugin(

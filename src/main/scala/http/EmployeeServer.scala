@@ -1,26 +1,31 @@
 package http
 
-import cats.MonadError
-import cats.data.{Kleisli, OptionT}
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.all.*
-import io.circe.Json
+import io.circe.generic.JsonCodec
 import org.http4s.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.circe.CirceEntityCodec.*
 import tf.routers.EmployeeRouter
 import tf.services.EmployeeService
+import tf.domain.employee.EmployeeDTO
+import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.client.blaze.BlazeClientBuilder
+import org.http4s.client.dsl.io.*
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.ExecutionContext
 
-object EmployeeServer extends IOApp {
+@JsonCodec
+final case class CreateEmployeeDTO(
+  birthday:  String,
+  firstName: String,
+  lastName:  String,
+  salary:    String,
+  position:  String
+)
 
-  private val router = for {
-    service <- EmployeeService.of[IO]
-    rr       = EmployeeRouter(service)
-  } yield rr
+object EmployeeServer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     BlazeServerBuilder[IO](ExecutionContext.global)
@@ -32,18 +37,20 @@ object EmployeeServer extends IOApp {
       .as(ExitCode.Success)
   }
 
+  private val router = new AtomicReference(for {
+    service <- EmployeeService.of[IO]
+    rr       = EmployeeRouter(service)
+  } yield rr)
+
   private def count(list: List[String]): IO[Option[String]] = {
     val resp = for {
-      rr  <- router
+      rr  <- router.get()
       res <- rr(list).value
     } yield res
     resp
   }
 
   private val employeeRouters = {
-
-    import io.circe.generic.auto._
-    import org.http4s.circe.CirceEntityCodec._
 
     HttpRoutes.of[IO] {
 
@@ -62,17 +69,18 @@ object EmployeeServer extends IOApp {
         val res = count(List("delete", id))
         Ok(res)
 
-      // curl -XPOST "localhost:9001/employee/create" -H "Content-Type: application/json" -d "{\"list\":[\"2010-10-10T11:11:00Z\", \"Arty\", \"Arty\", \"500.00USD\", \"junior\"]}"
+      // curl -XPOST "localhost:9001/employee/create" -H "Content-Type: application/json" -d "{\"birthday\": \"2010-10-10T11:11:00Z\", \"firstName\": \"Arty\", \"lastName\": \"Arty\", \"salary\": \"500.00USD\", \"position\": \"junior\"}"
       case req @ POST -> Root / "employee" / "create" =>
-        req.as[List[String]].flatMap { list =>
-          val res = count("create" :: list)
+        req.as[CreateEmployeeDTO].flatMap { dto =>
+          val res = count(List("create", dto.birthday, dto.firstName, dto.lastName, dto.salary, dto.position))
           Ok(res)
         }
 
-      // curl -XPOST "localhost:9001/employee/update" -H "Content-Type: application/json" -d "{\"list\":[\"dbd612dc-b1b0-46fb-864b-cdad53bf95d1\", \"2010-10-10T11:11:00Z\", \"Marty\", \"Marty\", \"500.00USD\", \"junior\"]}"
-      case req @ POST -> Root / "employee" / "delete" =>
-        req.as[List[String]].flatMap { list =>
-          val res = count("delete" :: list)
+      // curl -XPOST "localhost:9001/employee/update" -H "Content-Type: application/json" -d "{\"employeeId\": \"9a1618a7-3e4b-4ec6-b565-be684b34ed38\", \"birthday\": \"2010-10-10T11:11:00Z\", \"firstName\": \"Marty\", \"lastName\": \"Marty\", \"salary\": \"500.00USD\", \"position\": \"junior\"}"
+      case req @ POST -> Root / "employee" / "update" =>
+        req.as[EmployeeDTO].flatMap { dto =>
+          val res =
+            count(List("update", dto.employeeId, dto.birthday, dto.firstName, dto.lastName, dto.salary, dto.position))
           Ok(res)
         }
     }
@@ -82,5 +90,48 @@ object EmployeeServer extends IOApp {
   private[http] val httpApp = {
     employeeRouters
   }.orNotFound
+
+}
+
+object EmployeeClient extends IOApp {
+
+  private val uri = uri"http://localhost:9001"
+  private def printLine(string: String = ""): IO[Unit] = IO(println(string))
+
+  override def run(args: List[String]): IO[ExitCode] = {
+    BlazeClientBuilder[IO](ExecutionContext.global).resource
+      .use { client =>
+        for {
+          empty    <- client.expect[String](uri / "employee" / "all")
+          _        <- printLine("empty: " + empty)
+          createEmp = CreateEmployeeDTO("2010-10-10T11:11:00Z", "Arty", "Arty", "500.00USD", "junior")
+          created  <- client.expect[String](Method.POST(createEmp, uri / "employee" / "create"))
+          _        <- printLine("created: " + created)
+
+          nonEmpty <- client.expect[String](uri / "employee" / "all")
+          _        <- printLine("nonEmpty: " + nonEmpty)
+          //for test
+          employeeId = created.substring(26, 62)
+//          _         <- printLine("employeeId: " + employeeId)
+          updateEmp = EmployeeDTO(
+            employeeId,
+            "2010-10-10T11:11:00Z",
+            "Marty",
+            "Marty",
+            "500.00USD",
+            "junior"
+          )
+          updated <- client.expect[String](Method.POST(updateEmp, uri / "employee" / "update"))
+          _       <- printLine("updated: " + updated)
+          found   <- client.expect[String](uri / "employee" / "find" / employeeId)
+          _       <- printLine("found: " + found)
+          deleted <- client.expect[String](Method.POST(uri / "employee" / "delete" / employeeId))
+          _       <- printLine("deleted: " + deleted)
+          empty2  <- client.expect[String](uri / "employee" / "all")
+          _       <- printLine("empty2: " + empty2)
+        } yield ()
+      }
+      .as(ExitCode.Success)
+  }
 
 }

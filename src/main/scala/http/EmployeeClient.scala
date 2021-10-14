@@ -9,7 +9,7 @@ import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.client.dsl.io._
 
 import scala.concurrent.ExecutionContext
-
+//for test
 object EmployeeClient extends IOApp {
 
   private val uri = uri"http://localhost:9001"
@@ -28,8 +28,8 @@ object EmployeeClient extends IOApp {
           nonEmpty <- client.expect[String](uri / "employee" / "all")
           _        <- printLine("nonEmpty: " + nonEmpty)
           //for test
-          employeeId = created.substring(26, 62)
-          //          _         <- printLine("employeeId: " + employeeId)
+          employeeId = created.substring(12, 48)
+          _         <- printLine("employeeId: " + employeeId)
           updateEmp = EmployeeDTO(
             employeeId,
             "2010-10-10T11:11:00Z",

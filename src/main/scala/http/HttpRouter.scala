@@ -55,8 +55,8 @@ object HttpRouter {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(_)    => BadRequest(EmployeeHttpFormat.toString)
-          case Right(dto) => Ok(dto)
+          case Left(_)    => BadRequest(EmployeeHttpFormat.toString) //fix???
+          case Right(dto) => Ok(dto.toString)
         }
         .handleErrorWith { ex =>
           InternalServerError(ex.getMessage)

@@ -15,10 +15,8 @@ import java.util.UUID
 
 object employee {
 
-  @JsonCodec
   final case class EmployeeId(value: UUID)
 
-  @JsonCodec
   final case class Employee(
     employeeId: EmployeeId,
     birthday:   Instant,

@@ -8,7 +8,7 @@ import money.Money
 import workingPosition.WorkingPosition
 import io.circe.generic.auto._
 import io.circe.jawn._
-import io.circe.refined._
+import io.circe.refined
 
 import java.time.Instant
 import java.util.UUID

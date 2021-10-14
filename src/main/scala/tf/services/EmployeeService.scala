@@ -11,13 +11,13 @@ import java.util.UUID
 
 trait EmployeeService[F[_]] {
 
-  def all: F[List[Employee]]
+  def all: F[List[EmployeeDTO]]
 
-  def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Employee]]
+  def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, EmployeeDTO]]
 
   def update(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Boolean]]
 
-  def find(id: String): F[Option[Employee]]
+  def find(id: String): F[Option[EmployeeDTO]]
 
   def delete(id: String): F[Boolean]
 }
@@ -30,16 +30,16 @@ object EmployeeService {
 }
 
 final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Employee]]) extends EmployeeService[F] {
-  override def all: F[List[Employee]] = empList.get
+  override def all: F[List[EmployeeDTO]] = empList.get.map(list => list.map(convertToDTO))
 
-  override def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, Employee]] = {
+  override def create(employeeDTO: EmployeeDTO): F[Either[EmployeeValidationError, EmployeeDTO]] = {
     val empWithId = employeeDTO.copy(employeeId = UUID.randomUUID().toString)
     EmployeeValidator
       .validate(empWithId)
       .traverse { case e @ Employee(_, _, _, _, _, _) =>
         for {
           _ <- empList.update(e :: _)
-        } yield e
+        } yield convertToDTO(e)
       }
   }
 
@@ -55,11 +55,11 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
       }
   }
 
-  override def find(idS: String): F[Option[Employee]] = {
+  override def find(idS: String): F[Option[EmployeeDTO]] = {
     val res = validateId(idS).traverse { id =>
       empList.get.map(x => x.find(e => e.employeeId.value == id.value))
     }
-    res.map(x => x.getOrElse(None))
+    res.map(x => x.map(y => y.map(convertToDTO)).getOrElse(None))
   }
 
   override def delete(idS: String): F[Boolean] = {
@@ -69,6 +69,17 @@ final private class InMemoryEmployeeService[F[_]: Sync](empList: Ref[F, List[Emp
       )
     }
     res.map(x => x.getOrElse(false))
+  }
+
+  def convertToDTO(emp: Employee): EmployeeDTO = {
+    EmployeeDTO(
+      emp.employeeId.value.toString,
+      emp.birthday.toString,
+      emp.firstName.value,
+      emp.lastName.value,
+      emp.salary.amount.toString + emp.salary.currency.toString,
+      emp.position.toString.toLowerCase
+    )
   }
 
 }

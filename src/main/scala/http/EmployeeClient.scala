@@ -1,12 +1,12 @@
 package http
 
 import cats.effect.{ExitCode, IO, IOApp}
-import org.http4s.*
-import org.http4s.implicits.*
+import org.http4s._
+import org.http4s.implicits._
 import tf.domain.employee.{CreateEmployeeDTO, EmployeeDTO}
-import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.circe.CirceEntityCodec._
 import org.http4s.client.blaze.BlazeClientBuilder
-import org.http4s.client.dsl.io.*
+import org.http4s.client.dsl.io._
 
 import scala.concurrent.ExecutionContext
 

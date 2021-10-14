@@ -22,6 +22,8 @@ object EmployeeValidator {
     final case object SalaryCurrencyFormat extends EmployeeValidationError
     final case object EmployeePositionFormat extends EmployeeValidationError
     final case object EmployeeIdFormat extends EmployeeValidationError
+    final case object EmployeeHttpFormat extends EmployeeValidationError
+    final case object EmployeeNotFound extends EmployeeValidationError
   }
 
   def validate(employeeDTO: EmployeeDTO): Either[EmployeeValidationError, Employee] = for {

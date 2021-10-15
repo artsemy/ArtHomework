@@ -45,7 +45,7 @@ object employee {
     position:  String
   )
 
-  type FirstName = String Refined MatchesRegex[W.`"""[A-Z][a-z]{2,29}"""`.T]
+  type FirstName = String Refined MatchesRegex[W.`"""[A-Z][a-z]{2,28}"""`.T]
   type LastName  = String Refined MatchesRegex[W.`"""[A-Z][a-z]{2,29}"""`.T]
 
 }

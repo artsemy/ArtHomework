@@ -6,6 +6,9 @@ import doobie.ConnectionIO
 import doobie.util.fragment.Fragment
 import doobie._
 import doobie.implicits._
+import doobie.implicits.javasql._ //for date i think
+import doobie.implicits.javatime._ //for Instant meta
+import doobie.h2.implicits._ //for UUID
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.{refineV, W}
 import eu.timepit.refined.string.MatchesRegex
@@ -14,8 +17,7 @@ import tf.domain.employee.{FirstName, LastName}
 import tf.domain.money.Money
 import tf.domain.workingPosition.WorkingPosition
 
-import java.util.{Currency, Date, UUID}
-import java.time.Instant
+import java.util.{Currency, UUID}
 
 object Less18 extends IOApp {
 
@@ -34,15 +36,14 @@ object Less18 extends IOApp {
       }
       .as(ExitCode.Success)
 
-  implicit val uuidMeta:    Meta[UUID]    = Meta[String].timap(UUID.fromString)(_.toString) //why need this?
-  implicit val instantMeta: Meta[Instant] = Meta[Date].timap(_.toInstant)(Date.from)
-  implicit val moneyMeta:   Meta[Money]   = Meta[String].timap(convertStringToMoney)(convertMoneyToString)
+//  implicit val uuidMeta:    Meta[UUID]    = Meta[String].timap(UUID.fromString)(_.toString) //why need this?
+//  implicit val instantMeta: Meta[Instant] = Meta[Date].timap(_.toInstant)(x => x.) //implicits help with this
+  implicit val moneyMeta: Meta[Money] = Meta[String].timap(convertStringToMoney)(convertMoneyToString)
   implicit val positionMeta: Meta[WorkingPosition] = {
     Meta[String].timap(convertStringToPosition)(convertPositionToString)
   }
-  //bad design
-//  implicit val firstNameMeta: Meta[FirstName] =
-//    Meta[String].timap(convertParameter[String, MatchesRegex[W.`"""[A-Z][a-z]{2,29}"""`.T]](_, "Name"))(_.value)
+  implicit val firstNameMeta: Meta[FirstName] =
+    Meta[String].timap(convertParameter[String, MatchesRegex[W.`"""[A-Z][a-z]{2,28}"""`.T]](_, "Name"))(_.value)
 
   implicit val lastNameMeta: Meta[LastName] =
     Meta[String].timap(convertParameter[String, MatchesRegex[W.`"""[A-Z][a-z]{2,29}"""`.T]](_, "Name"))(_.value)
@@ -96,7 +97,7 @@ object Less18 extends IOApp {
 
   val selectAllFromEmployee =
     fr"""SELECT e.id, e.birthday, e.firstName, e.lastName, e.salary, p.position, e.isArchived FROM
-        employee e INNER JOIN positions p ON e.positionId = p.id"""
+        employees e INNER JOIN positions p ON e.positionId = p.id"""
 
   def all: doobie.ConnectionIO[List[EmployeeDb]] = {
     selectAllFromEmployee.query[EmployeeDb].to[List]
@@ -114,7 +115,7 @@ object Less18 extends IOApp {
   def update(employeeDb: EmployeeDb): ConnectionIO[Int] = {
     val emp = employeeDb.employee
     val fr =
-      fr"""UPDATE employee
+      fr"""UPDATE employees
         SET
         birthday = ${emp.birthday},
         firstName = ${emp.firstName},
@@ -134,7 +135,7 @@ object Less18 extends IOApp {
 
   def delete(idS: String): ConnectionIO[Int] = {
     val id = UUID.fromString(idS)
-    val fr = fr"""DELETE FROM employee WHERE id = $id"""
+    val fr = fr"""DELETE FROM employees WHERE id = $id"""
     fr.update.run
   }
 

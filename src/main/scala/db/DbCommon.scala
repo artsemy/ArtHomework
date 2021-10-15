@@ -13,18 +13,18 @@ object DbCommon {
   val positionRandId3: UUID = UUID.randomUUID()
 
   val createTableEmployeeSql: String =
-    """CREATE TABLE employees(
+    """CREATE TABLE employees (
       |  id UUID PRIMARY KEY,
       |  birthday DATE NOT NULL,
       |  firstName VARCHAR(100) NOT NULL,
       |  lastName VARCHAR(100) NOT NULL,
       |  salary VARCHAR(100) NOT NULL,
       |  positionId UUID NOT NULL,
-      |  isArchived BOOLEAN
-      |  FOREIGN KEY (positionId) REFERENCES positions(id));""".stripMargin
+      |  isArchived BOOLEAN NOT NULL,
+      |  FOREIGN KEY (positionId) REFERENCES positions(id) );""".stripMargin
 
   val createTableWorkPositionsSql: String =
-    """CREATE TABLE positions
+    """CREATE TABLE positions (
       |  id UUID PRIMARY KEY,
       |  position VARCHAR(100) NOT NULL);""".stripMargin
 
@@ -35,7 +35,7 @@ object DbCommon {
        |  ('$positionRandId2', 'middle'),
        |  ('$positionRandId3', 'senior');
        |
-       |INSERT INTO employees (id, birthday, firstName, lastName, salary, positionId, isArchived)
+       |INSERT INTO employees (id, birthday, firstName, lastName, salary, positionId, isArchived) VALUES
        |  ('$employeeRandId1', '2010-10-10', 'Arty', 'Arty', '100.00USD', '$positionRandId1', 'false'),
        |  ('$employeeRandId2', '2010-12-12', 'Barty', 'Barty', '500.00USD', '$positionRandId2', 'false'),
        |  ('$employeeRandId3', '2010-05-05', 'Carty', 'Carty', '1000.00USD', '$positionRandId3', 'false');

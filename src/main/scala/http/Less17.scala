@@ -5,16 +5,16 @@ import http.Game.{InitParams, InitParamsDTO}
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.all.*
+import cats.syntax.all._
 import io.circe.generic.JsonCodec
-import org.http4s.*
+import org.http4s._
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
-import org.http4s.client.dsl.io.*
-import org.http4s.dsl.io.*
-import org.http4s.implicits.*
+import org.http4s.client.dsl.io._
+import org.http4s.dsl.io._
+import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.circe.CirceEntityCodec._
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext

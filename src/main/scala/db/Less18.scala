@@ -1,7 +1,7 @@
 package db
 
 import cats.effect.{ExitCode, IO, IOApp}
-import db.DbCommon.{createTableEmployeeSql, fullFillTablesSql}
+import db.DbCommon.{createTableEmployeeSql, createTableWorkPositionsSql, fullFillTablesSql}
 import doobie.ConnectionIO
 import doobie.util.fragment.Fragment
 import doobie._
@@ -19,6 +19,8 @@ import java.time.Instant
 
 object Less18 extends IOApp {
 
+  private def printLine(string: String = ""): IO[Unit] = IO(println(string))
+
   override def run(args: List[String]): IO[ExitCode] =
     DbTransactor
       .make[IO]
@@ -26,7 +28,8 @@ object Less18 extends IOApp {
         for {
           _ <- setup().transact(xa)
           x <- all.transact(xa)
-          _  = println(x)
+          _  = println(x) //printLine
+
         } yield ()
       }
       .as(ExitCode.Success)
@@ -81,7 +84,7 @@ object Less18 extends IOApp {
     }
   }
 
-  val ddl1: Fragment = Fragment.const(createTableEmployeeSql)
+  val ddl1: Fragment = Fragment.const(createTableWorkPositionsSql)
   val ddl2: Fragment = Fragment.const(createTableEmployeeSql)
   val dml:  Fragment = Fragment.const(fullFillTablesSql)
 

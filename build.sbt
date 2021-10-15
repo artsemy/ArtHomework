@@ -8,8 +8,8 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-Ymacro-annotations",
-  "-Xfatal-warnings",
-  "-Xsource:3"
+  "-Xfatal-warnings"
+//  "-Xsource:3"
 )
 
 ThisBuild / scalafmtOnCompile := true

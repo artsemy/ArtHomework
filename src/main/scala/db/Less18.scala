@@ -6,9 +6,9 @@ import doobie.ConnectionIO
 import doobie.util.fragment.Fragment
 import doobie._
 import doobie.implicits._
-import doobie.implicits.javasql._ //for date i think
-import doobie.implicits.javatime._ //for Instant meta
-import doobie.h2.implicits._ //for UUID
+import doobie.implicits.javasql._
+import doobie.implicits.javatime._
+import doobie.h2.implicits._
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.{refineV, W}
 import eu.timepit.refined.string.MatchesRegex
@@ -16,22 +16,27 @@ import eu.timepit.refined.auto._
 import tf.domain.employee.{FirstName, LastName}
 import tf.domain.money.Money
 import tf.domain.workingPosition.WorkingPosition
-
 import java.util.{Currency, UUID}
 
 object Less18 extends IOApp {
-
-  private def printLine(string: String = ""): IO[Unit] = IO(println(string))
 
   override def run(args: List[String]): IO[ExitCode] =
     DbTransactor
       .make[IO]
       .use { xa =>
         for {
-          _ <- setup().transact(xa)
-          x <- all.transact(xa)
-          _  = println(x) //printLine
-
+          _      <- setup().transact(xa)
+          x      <- all.transact(xa)
+          _       = println(x) //printLine
+          x      <- all.transact(xa)
+          _       = println(x) //printLine
+          find   <- find("9a1618a7-3e4b-4ec6-b565-be684b34ed38").transact(xa)
+          _       = println(find)
+          delete <- delete("9a1618a7-3e4b-4ec6-b565-be684b34ed38").transact(xa)
+          _       = println(delete)
+          x      <- all.transact(xa)
+          _       = println(x) //printLine
+          //how to test create update???
         } yield ()
       }
       .as(ExitCode.Success)
@@ -129,7 +134,7 @@ object Less18 extends IOApp {
 
   def find(idS: String): ConnectionIO[List[EmployeeDb]] = {
     val id = UUID.fromString(idS)
-    val fr = selectAllFromEmployee ++ fr"""WHERE id = $id"""
+    val fr = selectAllFromEmployee ++ fr"""WHERE e.id = $id"""
     fr.query[EmployeeDb].to[List]
   }
 
